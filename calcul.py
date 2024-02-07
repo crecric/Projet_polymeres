@@ -1,2 +1,5 @@
-def f(x):
-    return x**2
+import numpy as np
+
+def polymerize(M(i)):
+    return 
+
