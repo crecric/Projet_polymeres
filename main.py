@@ -1,21 +1,28 @@
 import numpy as np
-import math
-import calcul
-import visualisation
+from calcul import random_step
+from visualisation import visu3D
+import matplotlib as mpl
 
-tf=100   #total time
-t0=0
-dt=0.1  #time interval
+# Grid and length params
+N = 10**3
+n = 100
 
-l=30    #length of polymer (or number of elementary units)
+# Random initial start
+x, y, z = np.random.randint(0, N-1, 3)
+pos = [[x,y,z]]
+# Looping on the walk
+for step in range(n):
+   x, y, z = random_step(N, pos[step])
+   pos.append([x,y,z])
 
-s=int((tf-t0)/dt) #number of steps, size of the array
+pos = np.array(pos).T
 
-t=np.linspace(t0,tf,s)
-t[0]=t0
-y=np.zeros(len(t))
-for i in range(t0,len(t)):
+# Global plotting parameters
+mpl.rcParams['font.size'] = 15
+mpl.rcParams['figure.figsize'] = (6,5)
+# mpl.rcParams['text.usetex'] = True
+mpl.rcParams['font.family'] = 'serif'
+mpl.rcParams['font.serif'] = ['Times']
+mpl.rcParams['axes.linewidth'] = 3
 
-    y[i]=calcul.f(t[i]) #length^2
-
-visualisation.graph2D(t,y)
+visu3D(pos[0], pos[1], pos[2])
