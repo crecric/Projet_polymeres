@@ -13,8 +13,8 @@ pos = [[x,y,z]]
 
 # Looping on the walk
 for step in range(n):
-   print(step)
    if number_neighbors(N, [x,y,z], pos) == 6:
+      # Stoping the walk when it reaches a closed-loop of neighbors
       break
    x, y, z = random_step(N, pos[step])
    while [x, y, z] in pos:
