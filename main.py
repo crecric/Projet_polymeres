@@ -13,10 +13,13 @@ pos = [[x,y,z]]
 # Looping on the walk
 for step in range(n):
    x, y, z = random_step(N, pos[step])
+   while [x, y, z] in pos:
+      # Generating new step if the step is already present in the history of steps
+      x, y, z = random_step(N, pos[step])
    pos.append([x,y,z])
 
-pos = np.array(pos).T
-
+pos = np.array(pos)
+print(pos)
 # Global plotting parameters
 mpl.rcParams['font.size'] = 15
 mpl.rcParams['figure.figsize'] = (6,5)
