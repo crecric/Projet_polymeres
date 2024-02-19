@@ -17,6 +17,10 @@ class LatticePolymer:
         self.weight = 1
 
     def genwalk(self, compute_weight=True):
+
+        #Positioning the initial monomer in the center of the grid
+        self.pos = [[self.N, self.N, self.N]]
+        
         # Looping on the walk
         for step in range(self.N):
             if compute_weight:
@@ -76,7 +80,7 @@ class MonteCarlo(LatticePolymer):
     def rosenbluth(self, perm=False):
         for trial in range(self.n):
             poly = self.genwalk()
-            self.history.append()
+            self.history.append(poly)
         return None
     
     def compute_re(self, ):
