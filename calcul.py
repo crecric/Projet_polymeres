@@ -65,16 +65,17 @@ class LatticePolymer:
         
 class MonteCarlo(LatticePolymer):
     '''
-    Generate collection of polymers
-    Return thermodynamic observables
+    Generates collection of polymers
+    Returns thermodynamic observables
     '''
     def __init__(self, n=50):
         self.n = n
         LatticePolymer.__init__()
         self.history = np.empty(shape=self.n, dtype=LatticePolymer)
 
-    def rothenbluth(self, perm=False):
+    def rosenbluth(self, perm=False):
         for trial in range(self.n):
+            poly = self.genwalk()
             self.history.append()
         return None
     
@@ -82,5 +83,5 @@ class MonteCarlo(LatticePolymer):
 
         return None
     
-# polymer.sample_re(rothenbluth='perm')
+# polymer.sample_re(rosenbluth='perm')
 # class Observables(LatticePolymer):
