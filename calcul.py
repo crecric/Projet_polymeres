@@ -13,7 +13,6 @@ class LatticePolymer:
         
         # Creating a sufficiently big grid
         grid = 2*self.N + 1
-        self.pos = [[self.N, self.N, self.N]]
         self.weight = 1
 
     def genwalk(self, compute_weight=True):
@@ -74,14 +73,14 @@ class MonteCarlo(LatticePolymer):
     '''
     def __init__(self, n=50):
         self.n = n
-        LatticePolymer.__init__()
+        poly = LatticePolymer.__init__()
         self.history = np.empty(shape=self.n, dtype=LatticePolymer)
 
     def rosenbluth(self, perm=False):
         for trial in range(self.n):
-            poly = self.genwalk()
+            poly = poly.copy()
+            poly = poly.genwalk()
             self.history.append(poly)
-        return None
     
     def compute_re(self, ):
 
