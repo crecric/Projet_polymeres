@@ -1,21 +1,23 @@
 import numpy as np
-import math
-import calcul
-import visualisation
+from calcul import LatticePolymer
+from visualisation import visu3D
+import matplotlib as mpl
 
-tf=100   #total time
-t0=0
-dt=0.1  #time interval
+# Grid and length params
+n = 10000
 
-l=30    #length of polymer (or number of elementary units)
+# Generating polymer
+polymer = LatticePolymer(n)
+polymer.genwalk()
+polymer.weight
+pos = np.array(polymer.pos).T
 
-s=int((tf-t0)/dt) #number of steps, size of the array
+# Global plotting parameters
+mpl.rcParams['font.size'] = 15
+mpl.rcParams['figure.figsize'] = (6,5)
+# mpl.rcParams['text.usetex'] = True
+mpl.rcParams['font.family'] = 'serif'
+mpl.rcParams['font.serif'] = ['Times']
+mpl.rcParams['axes.linewidth'] = 3
 
-t=np.linspace(t0,tf,s)
-t[0]=t0
-y=np.zeros(len(t))
-for i in range(t0,len(t)):
-
-    y[i]=calcul.f(t[i]) #length^2
-
-visualisation.graph2D(t,y)
+visu3D(pos[0], pos[1], pos[2])
