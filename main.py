@@ -7,11 +7,11 @@ from copy import copy
 from numpy import linalg
 
 # Params
-N = 1000
-beta_eps = -10e-23
-n = 10
+N = 1000            # Number of monomers
+beta_eps = -10e-23  # beta*eps
+n = 10              # Number of polymers
 
-# Generating with Rosenbluth method
+# Generating a group of polymers with Rosenbluth method
 mcgroup = MonteCarlo(n)
 mcgroup.rosenbluth(perm=False)
 print(mcgroup.compute_re())
