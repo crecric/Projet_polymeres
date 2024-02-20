@@ -5,15 +5,19 @@ class LatticePolymer:
     '''
     TODO: excluse stuck polymers
     '''
-    def __init__(self, N, constraint='force'):
+    def __init__(self, N=100, constraint='force', interacting=False,  **kwargs):
+        self.interacting = interacting
+        #self.set_weight()
         self.N = N
         self.constraint = constraint
         if self.constraint not in ['force', 'length']:
             raise NotImplementedError('Please select constraint in ["force", "length"].')
-        
+        self.beta_eps = kwargs.get("beta_eps",None)
         # Creating a sufficiently big grid
         grid = 2*self.N + 1
         self.weight = 1
+        if self.interacting:
+            self.weight = np.exp(-self.beta_eps)
 
     def genwalk(self, compute_weight=True):
 
@@ -23,21 +27,24 @@ class LatticePolymer:
         # Looping on the walk
         for step in range(self.N):
             if compute_weight:
-                print(self.weight)
+                
+                
                 self.update_weight()
-            # print(self.pos)
+                print(self.weight)
             if self.number_neighbors() == 0:
                 # Stoping the walk when it reaches a closed-loop of neighbors
                 break
             x, y, z = self.random_step()
+            
             while [x, y, z] in self.pos:
                 # Generating new step if the step is already present in the history of steps
                 x, y, z = self.random_step()
+
             self.pos.append([x,y,z])
 
     def number_neighbors(self):
         '''
-        This function computes the number of occupied neighbors at a given site in a history of steps. 
+        This function computes the number of free sites at a given site in a history of steps. 
         It is relevent to use in the case where a polymer chain can no longer be extended (the final step is surrounded by 6 neighbors)
         '''
         x, y, z = self.pos[-1]
@@ -46,6 +53,21 @@ class LatticePolymer:
         for neighbor in neighbors:
             if neighbor not in self.pos:
                 c += 1
+        return c
+    
+    def number_pairs(self):
+        '''
+        This function computes the number of occupied neighbors at a given site in a history of steps. 
+        It is relevent to use in the case where a polymer chain can no longer be extended (the final step is surrounded by 6 neighbors)
+        '''
+        x, y, z = self.pos[-1]
+        neighbors = [[(x+1), y, z], [(x-1), y, z], [x, (y+1), z], [x, (y-1), z], [x, y, (z+1)], [x, y, (z-1)]]
+        c = -1
+        for neighbor in neighbors:
+            if neighbor in self.pos:
+                c += 1
+
+        #print(c)
         return c
     
     def random_step(self):
@@ -60,7 +82,18 @@ class LatticePolymer:
         return x, y, z
     
     def update_weight(self):
-        self.weight *= self.number_neighbors()
+        if not self.interacting:
+            self.weight *= self.number_neighbors()
+
+        else: 
+
+            self.weight *= self.number_neighbors()*np.exp(-self.beta_eps*self.number_pairs())
+
+
+
+    # def set_weight(self):
+    #     if self.interacting:
+            
 
     # def rosenbluth():
     
@@ -83,7 +116,7 @@ class MonteCarlo(LatticePolymer):
             self.history.append(poly)
     
     def compute_re(self, ):
-
+        
         return None
     
 # polymer.sample_re(rosenbluth='perm')

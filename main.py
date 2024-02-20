@@ -3,13 +3,14 @@ from calcul import LatticePolymer
 from visualisation import visu3D
 import matplotlib as mpl
 
-# Grid and length params
-n = 10000
+# Params
+n = 1000
+beta_eps = -10e-23
 
 # Generating polymer
-polymer = LatticePolymer(n)
+polymer = LatticePolymer(n, constraint = "force", interacting = False,  beta_eps=beta_eps)
 polymer.genwalk()
-polymer.weight
+print(polymer.weight)
 pos = np.array(polymer.pos).T
 
 # Global plotting parameters
@@ -20,4 +21,4 @@ mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = ['Times']
 mpl.rcParams['axes.linewidth'] = 3
 
-visu3D(pos[0], pos[1], pos[2])
+#visu3D(pos[0], pos[1], pos[2])
