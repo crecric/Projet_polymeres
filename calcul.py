@@ -1,5 +1,7 @@
 import numpy as np
 from random import choice
+from copy import copy
+from numpy import linalg
 
 class LatticePolymer:
     '''
@@ -30,7 +32,7 @@ class LatticePolymer:
                 
                 
                 self.update_weight()
-                print(self.weight)
+                #print(self.weight)
             if self.number_neighbors() == 0:
                 # Stoping the walk when it reaches a closed-loop of neighbors
                 break
@@ -41,6 +43,8 @@ class LatticePolymer:
                 x, y, z = self.random_step()
 
             self.pos.append([x,y,z])
+
+        self.pos=np.array(self.pos)
 
     def number_neighbors(self):
         '''
@@ -67,7 +71,6 @@ class LatticePolymer:
             if neighbor in self.pos:
                 c += 1
 
-        #print(c)
         return c
     
     def random_step(self):
@@ -90,12 +93,9 @@ class LatticePolymer:
             self.weight *= self.number_neighbors()*np.exp(-self.beta_eps*self.number_pairs())
 
 
-
-    # def set_weight(self):
-    #     if self.interacting:
-            
-
-    # def rosenbluth():
+    def length(self):
+        return np.linalg.norm(self.pos[-1]-self.pos[0],2)
+    
     
     # def perm():
         
@@ -104,20 +104,22 @@ class MonteCarlo(LatticePolymer):
     Generates collection of polymers
     Returns thermodynamic observables
     '''
-    def __init__(self, n=50):
+    def __init__(self, n=10, N=100, constraint='force', interacting=False,  **kwargs):
         self.n = n
-        poly = LatticePolymer.__init__()
-        self.history = np.empty(shape=self.n, dtype=LatticePolymer)
+        LatticePolymer.__init__(self)
+        self.history = np.empty(shape=self.n, dtype=MonteCarlo)
 
     def rosenbluth(self, perm=False):
         for trial in range(self.n):
-            poly = poly.copy()
-            poly = poly.genwalk()
-            self.history.append(poly)
+            poly = copy(self)
+
+            poly.genwalk()
+            self.history[trial]=poly
     
     def compute_re(self, ):
         
-        return None
+        return (np.sum([self.history[trial].weight*self.history[trial].length() for trial in range(self.n)]))/ \
+                np.sum([self.history[trial].weight for trial in range(self.n)])
     
 # polymer.sample_re(rosenbluth='perm')
 # class Observables(LatticePolymer):

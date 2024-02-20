@@ -2,16 +2,26 @@ import numpy as np
 from calcul import LatticePolymer
 from visualisation import visu3D
 import matplotlib as mpl
+from calcul import MonteCarlo
+from copy import copy
+from numpy import linalg
 
 # Params
-n = 1000
+N = 1000
 beta_eps = -10e-23
+n = 10
+
+# Generating with Rosenbluth method
+mcgroup = MonteCarlo(n)
+mcgroup.rosenbluth(perm=False)
+print(mcgroup.compute_re())
 
 # Generating polymer
-polymer = LatticePolymer(n, constraint = "force", interacting = False,  beta_eps=beta_eps)
-polymer.genwalk()
-print(polymer.weight)
-pos = np.array(polymer.pos).T
+# polymer = LatticePolymer(N, constraint = "force", interacting = False,  beta_eps=beta_eps)
+# polymer.genwalk()
+# length= polymer.length()
+# print(length)
+# pos = np.array(polymer.pos).T
 
 # Global plotting parameters
 mpl.rcParams['font.size'] = 15
