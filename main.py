@@ -19,7 +19,7 @@ n = 10              # Number of polymers
 # Generating polymer
 polymer = LatticePolymer(N, constraint = "force",  beta_eps=beta_eps)
 polymer.gen_walk()
-length= polymer.g_length()
+length = polymer.gyration()
 print(length)
 pos = np.array(polymer.pos).T
 

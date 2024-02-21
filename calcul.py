@@ -40,8 +40,6 @@ class LatticePolymer:
         '''
         Generates a chain of random steps to simulate the polymer. It starts at the center of the grid.
         '''
-
-
         # Positioning the initial monomer
         self.pos = [[0, 0, 0]]
         
@@ -114,13 +112,13 @@ class LatticePolymer:
         '''
         return np.linalg.norm(self.pos[-1]-self.pos[0], 2)**2
     
-    def g_length(self):
+    def gyration(self):
         '''
-        Calculation of the radius of gyration (how "curled up" the polymer is)
-
+        Computes the radius of gyration (how "curled up" the polymer is).
         '''
-        return np.sum(np.linalg.norm(self.pos - np.sum(self.pos)/(self.N), 2)**2)/(self.N)
-    
+        N = self.pos.shape[0]                       # this in case the polymer is stuck before reaching self.N monomers
+        rCM = np.sum(self.pos, axis=0)/N
+        return np.sum(np.linalg.norm(self.pos - rCM, ord=2, axis=1)**2)/N
     
     @staticmethod
     def neighborhood(r):
@@ -165,6 +163,3 @@ class MonteCarlo(LatticePolymer):
         l_w = np.sum([self.history[trial].weight*self.history[trial].length() for trial in range(self.n)])
         w = np.sum([self.history[trial].weight for trial in range(self.n)])
         return l_w/w
-
-# polymer.sample_re(rosenbluth='perm')
-# class Observables(LatticePolymer):
