@@ -1,34 +1,35 @@
 import numpy as np
 from calcul import LatticePolymer
-from visualisation import visu3D
+import visualisation
 import matplotlib as mpl
 from calcul import MonteCarlo
 from copy import copy
 from numpy import linalg
 
 # Params
-N = 1000            # Number of monomers
-beta_eps = -10e-23  # beta*eps
-n = 10              # Number of polymers
+N = 10000            # Number of monomers
+beta_eps = -0  # beta*eps
+n = 100              # Number of polymers
 
 # Generating a group of polymers with Rosenbluth method
-mcgroup = MonteCarlo(n)
+mcgroup = MonteCarlo(n,N)
 mcgroup.rosenbluth(perm=False)
-print(mcgroup.compute_re())
+groupPos= np.array(mcgroup.history[0].pos)
+#print(mcgroup.compute_re())
+for i in range(1,n):
+    groupPos=np.vstack((groupPos,mcgroup.history[i].pos))
+print(groupPos)
+groupPos= np.array(groupPos).T
+
 
 # Generating polymer
-# polymer = LatticePolymer(N, constraint = "force", interacting = False,  beta_eps=beta_eps)
-# polymer.genwalk()
+# polymer = LatticePolymer(N, constraint = "force", beta_eps=beta_eps)
+# polymer.gen_walk()
 # length= polymer.length()
 # print(length)
 # pos = np.array(polymer.pos).T
 
-# Global plotting parameters
-mpl.rcParams['font.size'] = 15
-mpl.rcParams['figure.figsize'] = (6,5)
-# mpl.rcParams['text.usetex'] = True
-mpl.rcParams['font.family'] = 'serif'
-mpl.rcParams['font.serif'] = ['Times']
-mpl.rcParams['axes.linewidth'] = 3
 
-#visu3D(pos[0], pos[1], pos[2])
+
+#visualisation.singPolyVisu3D(groupPos[0], groupPos[1], groupPos[2])
+visualisation.polyCloud3D(groupPos[0], groupPos[1], groupPos[2])
