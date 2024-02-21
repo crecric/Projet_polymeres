@@ -41,6 +41,7 @@ class LatticePolymer:
         Generates a chain of random steps to simulate the polymer. It starts at the center of the grid.
         '''
 
+
         # Positioning the initial monomer
         self.pos = [[0, 0, 0]]
         

@@ -17,8 +17,8 @@ n = 10              # Number of polymers
 #print(mcgroup.compute_re())
 
 # Generating polymer
-polymer = LatticePolymer(N, constraint = "force", interacting = False,  beta_eps=beta_eps)
-polymer.genwalk()
+polymer = LatticePolymer(N, constraint = "force",  beta_eps=beta_eps)
+polymer.gen_walk()
 length= polymer.g_length()
 print(length)
 pos = np.array(polymer.pos).T
@@ -31,4 +31,4 @@ mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = ['Times']
 mpl.rcParams['axes.linewidth'] = 3
 
-#visu3D(pos[0], pos[1], pos[2])
+visu3D(pos[0], pos[1], pos[2])
