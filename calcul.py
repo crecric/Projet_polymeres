@@ -1,70 +1,72 @@
 import numpy as np
 from random import choice
 from copy import copy
-from numpy import linalg
 
 class LatticePolymer:
-    '''
-    TODO: excluse stuck polymers 
-
-    ### This should already be the case since we give it a weight of 0. ###
-    '''
-    def __init__(self, N=100, constraint='force', interacting=False,  **kwargs):
+    def __init__(self, N=100, constraint='force', beta_eps=0):
         '''
-        Initializes a polymer chain that is to be simulated by a self-avoiding random walk. 
-        Creates a grid and initializes the weight according to the choice between interacting and not interacting random walk.
+        Initializes a polymer chain that is to be simulated by a self-avoiding 
+        random walk. 
+        Initializes the weight according to the choice between an interacting and not interacting random walk.
+        Parameters
+        ----------
+        N : int
+            Polymer length
+        constraint : string
+            Thermo-mecanical constraint applied to the chain. Only 'force' implemented for the moment.
+        beta_eps : float
+            strength of interacting energy compared to inverse temperature. 
+            If beta_eps = 0 there is no closest-non-paired neighbor interaction.
         '''
-        self.interacting = interacting
-        #self.set_weight()
+        # Setting Interaction 
+        self.beta_eps = beta_eps
+        if self.beta_eps == 0:
+            self.interacting = False
+        else:
+            self.interacting = True
+        
         self.N = N
         self.constraint = constraint
         if self.constraint not in ['force', 'length']:
             raise NotImplementedError('Please select constraint in ["force", "length"].')
-        self.beta_eps = kwargs.get("beta_eps",None)
-        # Creating a sufficiently big grid
-        grid = 2*self.N + 1
+        
         self.weight = 1
         if self.interacting:
             # This initialization is necessary because the first iteration will wrongly count -1 occupied neighboring sites,
-            # so the effect has to be inversed.
+            # The weight has to be balanced in accordance.
             self.weight = np.exp(-self.beta_eps)
 
-    def genwalk(self, compute_weight=True):
+    def gen_walk(self):
         '''
-        Generates a chain of random steps to simulate the polymer. It starts at the center of the grid. It creates
+        Generates a chain of random steps to simulate the polymer. It starts at the center of the grid.
         '''
 
-        # Positioning the initial monomer in the center of the grid
-        self.pos = [[self.N, self.N, self.N]]
+        # Positioning the initial monomer
+        self.pos = [[0, 0, 0]]
         
         # Looping on the walk
         for step in range(self.N):
-            if compute_weight:
-                
-                
-                self.update_weight()
-                #print(self.weight)
+            self.update_weight()
             if self.number_neighbors() == 0:
                 # Stoping the walk when it reaches a closed-loop of neighbors
                 break
+            # Generating a new direction
             x, y, z = self.random_step()
-            
             while [x, y, z] in self.pos:
                 # Generating new step if the step is already present in the history of steps
                 x, y, z = self.random_step()
 
             self.pos.append([x,y,z])
 
-        self.pos=np.array(self.pos)
+        self.pos = np.array(self.pos)
 
     def number_neighbors(self):
         '''
-        This function computes the number of free neighboring sites at a given site in a history of steps. 
-        It is relevant to use in the case where a polymer chain can no longer be extended (the final step is surrounded by 6 neighbors), 
-        or to calculate the weight.
+        This function computes the number of free neighboring sites of the last visited site in a history of steps. 
+        It is relevant to use in the case where a polymer chain can no longer be extended 
+        (the final step is surrounded by 6 neighbors) and to calculate the weight.
         '''
-        x, y, z = self.pos[-1]
-        neighbors = [[(x+1), y, z], [(x-1), y, z], [x, (y+1), z], [x, (y-1), z], [x, y, (z+1)], [x, y, (z-1)]]
+        neighbors = self.neighborhood(self.pos[-1])
         c = 0
         for neighbor in neighbors:
             if neighbor not in self.pos:
@@ -77,8 +79,7 @@ class LatticePolymer:
         It is relevent to use in the case where a polymer chain can no longer be extended (the final step is surrounded by 6 neighbors),
         or to calculate the weight.
         '''
-        x, y, z = self.pos[-1]
-        neighbors = [[(x+1), y, z], [(x-1), y, z], [x, (y+1), z], [x, (y-1), z], [x, y, (z+1)], [x, y, (z-1)]]
+        neighbors = self.neighborhood(self.pos[-1])
         # Counting the number of occupied neighbors
         c = -1  
         # Since we will certainly count the occupied neighbor from which we just moved, we start the count at -1. 
@@ -87,18 +88,13 @@ class LatticePolymer:
         for neighbor in neighbors:
             if neighbor in self.pos:
                 c += 1
-
         return c
     
     def random_step(self):
         '''
-        This function generates a random step at position pos in a 3-dimension n-length chain.
-        N**3 is the number of accessible sites.
+        This function generates a random step starting from last visited site.
         '''
-        x, y, z = self.pos[-1]
-        neighbors = [[(x+1), y, z], [(x-1), y, z], [x, (y+1), z], [x, (y-1), z], [x, y, (z+1)], [x, y, (z-1)]]
-        x, y, z = choice(neighbors)
-
+        x, y, z = choice(self.neighborhood(self.pos[-1]))
         return x, y, z
     
     def update_weight(self):
@@ -107,47 +103,60 @@ class LatticePolymer:
         '''
         if not self.interacting:
             self.weight *= self.number_neighbors()
-
         else: 
             self.weight *= self.number_neighbors()*np.exp(-self.beta_eps*self.number_pairs())
 
 
     def length(self):
         '''
-        Computes the square length of a polymer (squared norm between beginning and end of said polymer)
+        Computes the squared length of a polymer (squared norm between beginning and end of said polymer).
         '''
-        return np.linalg.norm(self.pos[-1]-self.pos[0],2)
+        return np.linalg.norm(self.pos[-1]-self.pos[0], 2)**2
     
     
-    # def perm():
-        
+    @staticmethod
+    def neighborhood(r):
+        '''
+        Checks the neighboring sites of a given vector r.
+        '''
+        x, y, z = r
+        neighbors = [[(x+1), y, z], [(x-1), y, z], [x, (y+1), z], [x, (y-1), z], [x, y, (z+1)], [x, y, (z-1)]]
+        return neighbors
+
+
 class MonteCarlo(LatticePolymer):
     '''
-    Generates collection of polymers
-    Returns thermodynamic observables
+    Generates collection of polymers.
+    Returns thermodynamic observables.
     '''
     def __init__(self, n=10, N=100, constraint='force', interacting=False,  **kwargs):
+        '''
+        Parameters
+        ----------
+        n : int
+          Number of monte carlo steps (number of generated polymers)
+        '''
         self.n = n
         LatticePolymer.__init__(self)
         self.history = np.empty(shape=self.n, dtype=MonteCarlo)
 
     def rosenbluth(self, perm=False):
         '''
-        Fills the history with multiple polymers simulated by a random walk with the normal Rosenbluth method.
+        Fills the history with the polymers simulated by a random walk with the normal Rosenbluth method.
         '''
         for trial in range(self.n):
             poly = copy(self)
-
-            poly.genwalk()
-            self.history[trial]=poly
+            poly.gen_walk()
+            self.history[trial] = poly
     
     def compute_re(self):
         '''
         Computes the weighted average squared norm of a group of polymers
         '''
-        
-        return (np.sum([self.history[trial].weight*self.history[trial].length() for trial in range(self.n)]))/ \
-                np.sum([self.history[trial].weight for trial in range(self.n)])
-    
+        # Weighted averaged length
+        l_w = np.sum([self.history[trial].weight*self.history[trial].length() for trial in range(self.n)])
+        w = np.sum([self.history[trial].weight for trial in range(self.n)])
+        return l_w/w
+
 # polymer.sample_re(rosenbluth='perm')
 # class Observables(LatticePolymer):
