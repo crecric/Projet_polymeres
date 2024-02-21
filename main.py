@@ -12,16 +12,16 @@ beta_eps = -10e-23  # beta*eps
 n = 10              # Number of polymers
 
 # Generating a group of polymers with Rosenbluth method
-mcgroup = MonteCarlo(n)
-mcgroup.rosenbluth(perm=False)
-print(mcgroup.compute_re())
+#mcgroup = MonteCarlo(n)
+#mcgroup.rosenbluth(perm=False)
+#print(mcgroup.compute_re())
 
 # Generating polymer
-# polymer = LatticePolymer(N, constraint = "force", interacting = False,  beta_eps=beta_eps)
-# polymer.genwalk()
-# length= polymer.length()
-# print(length)
-# pos = np.array(polymer.pos).T
+polymer = LatticePolymer(N, constraint = "force", interacting = False,  beta_eps=beta_eps)
+polymer.genwalk()
+length= polymer.g_length()
+print(length)
+pos = np.array(polymer.pos).T
 
 # Global plotting parameters
 mpl.rcParams['font.size'] = 15

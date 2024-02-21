@@ -45,7 +45,7 @@ class LatticePolymer:
         self.pos = [[0, 0, 0]]
         
         # Looping on the walk
-        for step in range(self.N):
+        for step in range(1,self.N):
             self.update_weight()
             if self.number_neighbors() == 0:
                 # Stoping the walk when it reaches a closed-loop of neighbors
@@ -112,6 +112,13 @@ class LatticePolymer:
         Computes the squared length of a polymer (squared norm between beginning and end of said polymer).
         '''
         return np.linalg.norm(self.pos[-1]-self.pos[0], 2)**2
+    
+    def g_length(self):
+        '''
+        Calculation of the radius of gyration (how "curled up" the polymer is)
+
+        '''
+        return np.sum(np.linalg.norm(self.pos - np.sum(self.pos)/(self.N), 2)**2)/(self.N)
     
     
     @staticmethod
