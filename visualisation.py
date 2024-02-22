@@ -22,9 +22,11 @@ def singPolyVisu3D(x, y, z):
     ax.grid(True)
     plt.show()
 
-def polyCloud3D(x,y,z):
+def polyCloud3D(unique, points):
     ax = plt.figure().add_subplot(projection='3d')
-    ax.scatter(x,y,z, s=100, alpha=0.01)
+    color = points**(1/6)
+    size = points**(1)
+    ax.scatter(unique[0], unique[1], unique[2], c=-color, cmap='inferno', s=size, alpha=0.5)
     
     ax.grid(True)
     plt.show()
