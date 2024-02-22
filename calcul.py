@@ -3,7 +3,7 @@ from random import choice
 from copy import copy
 
 class LatticePolymer:
-    def __init__(self, N=100, constraint='force', beta_eps=0):
+    def __init__(self, N, constraint='force', beta_eps=0):
         '''
         Initializes a polymer chain that is to be simulated by a self-avoiding 
         random walk. 
@@ -137,7 +137,7 @@ class MonteCarlo(LatticePolymer):
     Generates collection of polymers.
     Returns thermodynamic observables.
     '''
-    def __init__(self, n=10, N=100, constraint='force', interacting=False,  **kwargs):
+    def __init__(self, n, N, constraint='force', interacting=False,  **kwargs):
         '''
         Parameters
         ----------
@@ -145,7 +145,7 @@ class MonteCarlo(LatticePolymer):
           Number of monte carlo steps (number of generated polymers)
         '''
         self.n = n
-        LatticePolymer.__init__(self)
+        LatticePolymer.__init__(self,N)
         self.history = np.empty(shape=self.n, dtype=MonteCarlo)
 
     def rosenbluth(self, perm=False):
