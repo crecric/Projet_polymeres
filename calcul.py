@@ -45,7 +45,7 @@ class LatticePolymer:
         self.pos = [[0, 0, 0]]
         
         # Looping on the walk
-        for step in range(self.N):
+        for step in range(1, self.N):
             self.update_weight()
             if self.number_neighbors() == 0:
                 # Stoping the walk when it reaches a closed-loop of neighbors
