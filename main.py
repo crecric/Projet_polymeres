@@ -4,14 +4,14 @@ from visualisation import visu3D
 import matplotlib as mpl
 
 # Params
-N = 100            # Number of monomers
-beta_eps = -10e-23  # beta*eps
-n = 10             # Number of polymers
+N = 100              # Number of monomers
+beta_eps = -10e-23   # beta*eps
+n = 100              # Number of polymers
 
 # Generating a group of polymers with Rosenbluth method
 mcgroup = MonteCarlo(n=n, N=N)
 mcgroup.rosenbluth(perm=True, c_m=1)
-# print(mcgroup.compute_re())
+print(mcgroup.compute_re())
 
 # Generating polymer
 # polymer = LatticePolymer(N, constraint = "force",  beta_eps=beta_eps)

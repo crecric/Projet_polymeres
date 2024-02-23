@@ -31,18 +31,9 @@ class LatticePolymer:
         self.constraint = constraint
         if self.constraint not in ['force', 'length']:
             raise NotImplementedError('Please select constraint in ["force", "length"].')
-        
-        self.weight = 1
-        if self.interacting:
-            # The first iteration will wrongly count -1 occupied neighboring sites (cf number_pairs)
-            # The weight has to be balanced in accordance.
-            self.weight = np.exp(-self.beta_eps)
 
-        self.weights = np.zeros(shape=(self.N))
-        self.weights[0] = 1
-
-        # :TODO: there is probably a more clever way to keep track of the sequential weights
-        # probably just dividing the global weight by some configurational weight
+        self.Z = np.ones(shape=self.N)
+        self.trial = 0
 
     def gen_walk(self, start=1, perm=False, c_m=1):
         '''
@@ -58,6 +49,11 @@ class LatticePolymer:
         '''
         # Positioning the initial monomer
         self.pos = [[0, 0, 0]]
+        self.weight = 1
+        if self.interacting:
+            # The first iteration will wrongly count -1 occupied neighboring sites (cf number_pairs)
+            # The weight has to be balanced in accordance.
+            self.weight = np.exp(-self.beta_eps)
 
         # Looping on the walk
         try:
@@ -67,7 +63,7 @@ class LatticePolymer:
                 if perm and step >= 3:
                     # Pruning/enriching
                     self.control_weight(step, c_m)
-                self.weights[step] = self.weight
+                self.Z[step] = (1/(self.trial+1)) * int(self.Z[step]*self.trial + self.weight)
 
                 # Stoping the walk when it reaches a closed-loop of neighbors
                 if self.number_neighbors() == 0:
@@ -193,10 +189,7 @@ class MonteCarlo(LatticePolymer):
         '''
         self.n = n
         LatticePolymer.__init__(self, N, constraint, beta_eps)
-        self.history = np.empty(shape=self.n, dtype=MonteCarlo) # np.full(shape=self.n, fill_value=np.nan)   # history of MC steps
-        # We fill the history with nans because later we will have to compute averages on parts of the history
-        # (cf estimate_Z)
-        self.Z = np.empty(shape=(self.N))
+        self.history = np.empty(shape=self.n, dtype=MonteCarlo)
 
     def rosenbluth(self, perm=False, **kwargs):
         '''
@@ -208,35 +201,33 @@ class MonteCarlo(LatticePolymer):
         c_m : float
             Pruning strength (as in lower threshold = c_m * current estimator of Z)
         '''
-        c_m = kwargs.get('c_m', 0.1) # lower threshold
-        start = 1                    # pruning/enriching is only applied after some trials
-        trial = 0
+        c_m = kwargs.get('c_m', 1) # lower threshold
+        start = 3                    # pruning/enriching is only applied after some trials
+        self.trial = 0
         self.clones = []
-        while trial < self.n:
-            print('Simulating polymer %d:' % trial)
+        while self.trial < self.n:
+            print('Simulating polymer %d:' % self.trial)
 
-            if trial < start or not perm:
-                poly = copy(self)
-                poly.gen_walk(perm=False)
-                self.history[trial] = poly
+            if self.trial < start or not perm:
+                self.gen_walk(perm=False)
+                self.history[self.trial] = copy(self)
+
             else:
-                # :TODO: this is bad
-                self.estimate_Z(trial)
-
                 # Cheking if a clone has been generated for this trial
                 if self.clones: # and self.history[trial-1].status == 'killed':
+                    print('Im here')
                     clone = self.clones[-1]
                     m = len(clone.pos)                 # number of monomers already present in present polymer
+                    clone.Z = self.Z
                     clone.gen_walk(m, perm, c_m)       # Processing polymer growth on top of the clone
-                    self.history[trial] = clone        
+                    self.history[self.trial] = clone        
 
                 # Else generating polymer from scratch
                 else:    
-                    poly = copy(self)
-                    poly.gen_walk(perm=perm, c_m=c_m)
-                    self.history[trial] = poly
+                    self.gen_walk(perm=perm, c_m=c_m)
+                    self.history[self.trial] = copy(self)
 
-            trial += 1
+            self.trial += 1
 
     def compute_re(self):
         '''
@@ -246,13 +237,13 @@ class MonteCarlo(LatticePolymer):
         return np.average([self.history[trial].length() for trial in range(self.n)], \
                           weights=[self.history[trial].weight for trial in range(self.n)])
     
-    def estimate_Z(self, trials):
-        '''
-        This function estimates a partition function for sized-L polymers (all possible Ls) with a specific number of trials.
-        We only use it once.
-        '''
-        W = np.array([[self.history[trial].weights[L] for trial in range(trials)] for L in range(self.N)]) 
-        self.Z = np.average(W, axis=1)
+    # def estimate_Z(self, trials):
+    #     '''
+    #     This function estimates a partition function for sized-L polymers (all possible Ls) with a specific number of trials.
+    #     We only use it once.
+    #     '''
+    #     W = np.array([[self.history[trial].weights[L] for trial in range(trials)] for L in range(self.N)]) 
+    #     self.Z = np.average(W, axis=1)
 
     # def update_Z(self, trials):
     #     self.Z = (1/trials)*((trials-1)*self.Z + np.array(self.history[trials].weights))
