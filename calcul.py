@@ -120,8 +120,9 @@ class LatticePolymer:
         '''
         Computes the radius of gyration (how "curled up" the polymer is).
         '''
-        rCM = np.average(self.pos, axis=0)
-        return np.average(np.linalg.norm(self.pos - rCM, ord=2, axis=1)**2)
+        N = self.pos.shape[0]                       # this in case the polymer is stuck before reaching self.N monomers
+        rCM = np.sum(self.pos, axis=0)/N
+        return np.sum(np.linalg.norm(self.pos - rCM, ord=2, axis=1)**2)/N
     
     @staticmethod
     def neighborhood(r):
