@@ -1,6 +1,8 @@
 import numpy as np
-from random import choice
+from random import choice, uniform
 from copy import copy
+from tqdm import tqdm
+from sklearn.preprocessing import normalize
 
 class LatticePolymer:
     def __init__(self, N=100, constraint='force', beta_eps=0):
@@ -32,33 +34,58 @@ class LatticePolymer:
         
         self.weight = 1
         if self.interacting:
-            # This initialization is necessary because the first iteration will wrongly count -1 occupied neighboring sites,
+            # The first iteration will wrongly count -1 occupied neighboring sites (cf number_pairs)
             # The weight has to be balanced in accordance.
             self.weight = np.exp(-self.beta_eps)
-        self.weights = [1]
-        # there is probably a more clever way to keep track of the sequential weights
+
+        self.weights = np.zeros(shape=(self.N))
+        self.weights[0] = 1
+
+        # :TODO: there is probably a more clever way to keep track of the sequential weights
         # probably just dividing the global weight by some configurational weight
 
-    def gen_walk(self):
+    def gen_walk(self, start=1, perm=False, c_m=1):
         '''
         Generates a chain of random steps to simulate the polymer. It starts at the center of the grid.
+        Parameters
+        ----------
+        start : int
+            Number of monomers already present in the polymer
+        perm : bool
+            Tells if pruning/enriching is applied during sampling
+        c_m : float
+            Pruning strength (as in lower threshold = c_m * current estimator of Z)
         '''
         # Positioning the initial monomer
         self.pos = [[0, 0, 0]]
 
         # Looping on the walk
-        for step in range(1, self.N):
-            self.update_weight()
-            if self.number_neighbors() == 0:
-                # Stoping the walk when it reaches a closed-loop of neighbors
-                break
-            # Generating a new direction
-            x, y, z = self.random_step()
-            while [x, y, z] in self.pos:
-                # Generating new step if the step is already present in the history of steps
-                x, y, z = self.random_step()
+        try:
+            self.status = 'done'
+            for step in (range(start, self.N)):
+                self.update_weight()
+                # :TODO: The following if condition is dumb
+                if perm and step >= 3:
+                    # Pruning/enriching
+                    self.control_weight(step, c_m)
+                self.weights[step] = self.weight
 
-            self.pos.append([x,y,z])
+                # Stoping the walk when it reaches a closed-loop of neighbors
+                if self.number_neighbors() == 0:
+                    self.status = 'killed'
+                    break
+                # Generating a new direction
+                x, y, z = self.random_step()
+                while [x, y, z] in self.pos:
+                    # Generating new step if the step is already present in the history of steps
+                    x, y, z = self.random_step()
+
+                self.pos.append([x,y,z])
+
+        # If control_weight prematuraly kills a polymer
+        except BreakException:
+            self.status = 'killed'
+            pass
 
         self.pos = np.array(self.pos)
 
@@ -99,16 +126,37 @@ class LatticePolymer:
         x, y, z = choice(self.neighborhood(self.pos[-1]))
         return x, y, z
     
+    def control_weight(self, step, c_m):
+        '''
+        This function applies the pruning/enriching algorithm to the Rosenbluth sampling.
+        '''
+        # PERM parameters
+        c_p = 10*c_m
+        # Current estimator of partition function
+        W_m = c_m*self.Z[step]
+        W_p = c_p*self.Z[step]
+
+        # Pruning
+        if self.weight < W_m:
+            if uniform(0, 1) < 0.5:
+                raise BreakException()
+            else:
+                self.weight *= 2
+
+        elif self.weight > W_p:
+            self.weight /= 2
+            clone = copy(self)
+            self.clones.append(clone)
+            # print('Polymer has been cloned! (step %d)' % step)
+
     def update_weight(self):
         '''
-        Updates weight according to the chosen random walk pattern
+        Updates weight according to the chosen random walk pattern.
         '''
         if not self.interacting:
             self.weight *= self.number_neighbors()
-            self.weights.append(self.weight)
         else: 
             self.weight *= self.number_neighbors()*np.exp(-self.beta_eps*self.number_pairs())
-            self.weights.append(self.weight)
 
     def length(self):
         '''
@@ -148,17 +196,51 @@ class MonteCarlo(LatticePolymer):
         '''
         self.n = n
         LatticePolymer.__init__(self, N, constraint, beta_eps)
-        self.history = np.empty(shape=self.n, dtype=MonteCarlo)
+        self.history = np.empty(shape=self.n, dtype=MonteCarlo) # np.full(shape=self.n, fill_value=np.nan)   # history of MC steps
+        # We fill the history with nans because later we will have to compute averages on parts of the history
+        # (cf estimate_Z)
+        self.Z = np.empty(shape=(self.N))
 
-    def rosenbluth(self):
+    def rosenbluth(self, perm=False, **kwargs):
         '''
         Fills the history with the polymers simulated by a random walk with the normal Rosenbluth method.
+        Parameters
+        ----------
+        perm : bool
+            Tells if pruning/enriching is applied during sampling
+        c_m : float
+            Pruning strength (as in lower threshold = c_m * current estimator of Z)
         '''
-        for trial in range(self.n):
-            poly = copy(self)
-            poly.gen_walk()
-            self.history[trial] = poly
-    
+        c_m = kwargs.get('c_m', 0.1) # lower threshold
+        start = 2                    # pruning/enriching is only applied after some trials
+        trial = 0
+        self.clones = []
+        while trial < self.n:
+            print('Simulating polymer %d:' % trial)
+
+            if trial < start or not perm:
+                poly = copy(self)
+                poly.gen_walk(perm=False)
+                self.history[trial] = poly
+            else:
+                # :TODO: this is bad
+                self.estimate_Z(trial)
+
+                # Cheking if a clone has been generated for this trial
+                if self.clones and self.history[trial-1].status == 'killed':
+                    clone = self.clones[-1]
+                    m = len(clone.pos)                 # number of monomers already present in present polymer
+                    clone.gen_walk(m, perm, c_m)       # Processing polymer growth on top of the clone
+                    self.history[trial] = clone        
+
+                # Else generating polymer from scratch
+                else:    
+                    poly = copy(self)
+                    poly.gen_walk(perm=perm, c_m=c_m)
+                    self.history[trial] = poly
+
+            trial += 1
+
     def compute_re(self):
         '''
         Computes the weighted average squared norm of a group of polymers
@@ -167,9 +249,16 @@ class MonteCarlo(LatticePolymer):
         return np.average([self.history[trial].length() for trial in range(self.n)], \
                           weights=[self.history[trial].weight for trial in range(self.n)])
     
-    def estimate_Z(self, L):
+    def estimate_Z(self, trials):
         '''
-        This function estimates a partition function for sized-L polymers.
+        This function estimates a partition function for sized-L polymers (all possible Ls) with a specific number of trials.
+        We only use it once.
         '''
-        W = [self.history[trial].weights[L] for trial in range(self.n)] # weights of all the generated sized-L polymers
-        return np.average(W)
+        W = np.array([[self.history[trial].weights[L] for trial in range(trials)] for L in range(self.N)]) 
+        self.Z = np.average(W, axis=1)
+
+    # def update_Z(self, trials):
+    #     self.Z = (1/trials)*((trials-1)*self.Z + np.array(self.history[trials].weights))
+
+class BreakException(Exception):
+    pass

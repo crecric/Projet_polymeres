@@ -1,20 +1,16 @@
 import numpy as np
-from calcul import LatticePolymer
+from calcul import LatticePolymer, MonteCarlo
 from visualisation import visu3D
 import matplotlib as mpl
-from calcul import MonteCarlo
-from copy import copy
-from numpy import linalg
 
 # Params
-N = 1000            # Number of monomers
+N = 100            # Number of monomers
 beta_eps = -10e-23  # beta*eps
 n = 100             # Number of polymers
 
 # Generating a group of polymers with Rosenbluth method
 mcgroup = MonteCarlo(n)
-mcgroup.rosenbluth()
-print(mcgroup.estimate_Z(5))
+mcgroup.rosenbluth(perm=True, c_m=1)
 # print(mcgroup.compute_re())
 
 # Generating polymer
