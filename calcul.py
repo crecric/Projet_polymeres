@@ -35,6 +35,9 @@ class LatticePolymer:
             # This initialization is necessary because the first iteration will wrongly count -1 occupied neighboring sites,
             # The weight has to be balanced in accordance.
             self.weight = np.exp(-self.beta_eps)
+        self.weights = [1]
+        # there is probably a more clever way to keep track of the sequential weights
+        # probably just dividing the global weight by some configurational weight
 
     def gen_walk(self):
         '''
@@ -42,9 +45,9 @@ class LatticePolymer:
         '''
         # Positioning the initial monomer
         self.pos = [[0, 0, 0]]
-        
+
         # Looping on the walk
-        for step in range(1,self.N):
+        for step in range(1, self.N):
             self.update_weight()
             if self.number_neighbors() == 0:
                 # Stoping the walk when it reaches a closed-loop of neighbors
@@ -102,9 +105,10 @@ class LatticePolymer:
         '''
         if not self.interacting:
             self.weight *= self.number_neighbors()
+            self.weights.append(self.weight)
         else: 
             self.weight *= self.number_neighbors()*np.exp(-self.beta_eps*self.number_pairs())
-
+            self.weights.append(self.weight)
 
     def length(self):
         '''
@@ -116,9 +120,8 @@ class LatticePolymer:
         '''
         Computes the radius of gyration (how "curled up" the polymer is).
         '''
-        N = self.pos.shape[0]                       # this in case the polymer is stuck before reaching self.N monomers
-        rCM = np.sum(self.pos, axis=0)/N
-        return np.sum(np.linalg.norm(self.pos - rCM, ord=2, axis=1)**2)/N
+        rCM = np.average(self.pos, axis=0)
+        return np.average(np.linalg.norm(self.pos - rCM, ord=2, axis=1)**2)
     
     @staticmethod
     def neighborhood(r):
@@ -135,7 +138,7 @@ class MonteCarlo(LatticePolymer):
     Generates collection of polymers.
     Returns thermodynamic observables.
     '''
-    def __init__(self, n=10, N=100, constraint='force', interacting=False,  **kwargs):
+    def __init__(self, n=10, N=100, constraint='force', beta_eps=0):
         '''
         Parameters
         ----------
@@ -143,10 +146,10 @@ class MonteCarlo(LatticePolymer):
           Number of monte carlo steps (number of generated polymers)
         '''
         self.n = n
-        LatticePolymer.__init__(self)
+        LatticePolymer.__init__(self, N, constraint, beta_eps)
         self.history = np.empty(shape=self.n, dtype=MonteCarlo)
 
-    def rosenbluth(self, perm=False):
+    def rosenbluth(self):
         '''
         Fills the history with the polymers simulated by a random walk with the normal Rosenbluth method.
         '''
@@ -160,6 +163,12 @@ class MonteCarlo(LatticePolymer):
         Computes the weighted average squared norm of a group of polymers
         '''
         # Weighted averaged length
-        l_w = np.sum([self.history[trial].weight*self.history[trial].length() for trial in range(self.n)])
-        w = np.sum([self.history[trial].weight for trial in range(self.n)])
-        return l_w/w
+        return np.average([self.history[trial].length() for trial in range(self.n)], \
+                          weights=[self.history[trial].weight for trial in range(self.n)])
+    
+    def estimate_Z(self, L):
+        '''
+        This function estimates a partition function for sized-L polymers.
+        '''
+        W = [self.history[trial].weights[L] for trial in range(self.n)] # weights of all the generated sized-L polymers
+        return np.average(W)

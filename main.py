@@ -9,19 +9,20 @@ from numpy import linalg
 # Params
 N = 1000            # Number of monomers
 beta_eps = -10e-23  # beta*eps
-n = 10              # Number of polymers
+n = 100             # Number of polymers
 
 # Generating a group of polymers with Rosenbluth method
-#mcgroup = MonteCarlo(n)
-#mcgroup.rosenbluth(perm=False)
-#print(mcgroup.compute_re())
+mcgroup = MonteCarlo(n)
+mcgroup.rosenbluth()
+print(mcgroup.estimate_Z(5))
+# print(mcgroup.compute_re())
 
 # Generating polymer
-polymer = LatticePolymer(N, constraint = "force",  beta_eps=beta_eps)
-polymer.gen_walk()
-length = polymer.gyration()
-print(length)
-pos = np.array(polymer.pos).T
+# polymer = LatticePolymer(N, constraint = "force",  beta_eps=beta_eps)
+# polymer.gen_walk()
+# length = polymer.gyration()
+# print(length)
+# pos = np.array(polymer.pos).T
 
 # Global plotting parameters
 mpl.rcParams['font.size'] = 15
@@ -31,4 +32,4 @@ mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = ['Times']
 mpl.rcParams['axes.linewidth'] = 3
 
-visu3D(pos[0], pos[1], pos[2])
+# visu3D(pos[0], pos[1], pos[2])
