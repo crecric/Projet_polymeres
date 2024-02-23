@@ -61,7 +61,6 @@ class LatticePolymer:
 
         # Looping on the walk
         try:
-            self.status = 'done'
             for step in tqdm(range(start, self.N)):
                 self.update_weight()
                 # :TODO: The following if condition is dumb
@@ -72,7 +71,6 @@ class LatticePolymer:
 
                 # Stoping the walk when it reaches a closed-loop of neighbors
                 if self.number_neighbors() == 0:
-                    self.status = 'killed'
                     break
                 # Generating a new direction
                 x, y, z = self.random_step()
@@ -84,7 +82,6 @@ class LatticePolymer:
 
         # If control_weight prematuraly kills a polymer
         except BreakException:
-            self.status = 'killed'
             pass
 
         self.pos = np.array(self.pos)
