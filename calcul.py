@@ -1,6 +1,6 @@
 import numpy as np
 from random import choice, uniform
-from copy import copy
+from copy import deepcopy as copy
 from tqdm import tqdm
 from sklearn.preprocessing import normalize
 
@@ -62,7 +62,7 @@ class LatticePolymer:
         # Looping on the walk
         try:
             self.status = 'done'
-            for step in (range(start, self.N)):
+            for step in tqdm(range(start, self.N)):
                 self.update_weight()
                 # :TODO: The following if condition is dumb
                 if perm and step >= 3:
@@ -212,7 +212,7 @@ class MonteCarlo(LatticePolymer):
             Pruning strength (as in lower threshold = c_m * current estimator of Z)
         '''
         c_m = kwargs.get('c_m', 0.1) # lower threshold
-        start = 2                    # pruning/enriching is only applied after some trials
+        start = 1                    # pruning/enriching is only applied after some trials
         trial = 0
         self.clones = []
         while trial < self.n:
@@ -227,7 +227,7 @@ class MonteCarlo(LatticePolymer):
                 self.estimate_Z(trial)
 
                 # Cheking if a clone has been generated for this trial
-                if self.clones and self.history[trial-1].status == 'killed':
+                if self.clones: # and self.history[trial-1].status == 'killed':
                     clone = self.clones[-1]
                     m = len(clone.pos)                 # number of monomers already present in present polymer
                     clone.gen_walk(m, perm, c_m)       # Processing polymer growth on top of the clone
