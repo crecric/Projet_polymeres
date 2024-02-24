@@ -2,7 +2,7 @@ import numpy as np
 from random import choice, uniform
 from copy import deepcopy as copy
 from tqdm import tqdm
-from sklearn.preprocessing import normalize
+from colorama import Fore, Style
 
 class LatticePolymer:
     def __init__(self, N=100, constraint='force', beta_eps=0):
@@ -132,15 +132,17 @@ class LatticePolymer:
         # Pruning
         if self.weight < W_m:
             if uniform(0, 1) < 0.5:
+                print('%sPolymer killed!%s' % (Fore.RED, Style.RESET_ALL))
                 raise BreakException()
             else:
+                print('%sPolymer survived!%s' % (Fore.GREEN, Style.RESET_ALL))
                 self.weight *= 2
 
         elif self.weight > W_p:
             self.weight /= 2
             clone = copy(self)
             self.clones.append(clone)
-            # print('Polymer has been cloned! (step %d)' % step)
+            print('%sPolymer has been cloned!%s' % (Fore.CYAN, Style.RESET_ALL))
 
     def update_weight(self):
         '''
@@ -215,7 +217,6 @@ class MonteCarlo(LatticePolymer):
             else:
                 # Cheking if a clone has been generated for this trial
                 if self.clones: # and self.history[trial-1].status == 'killed':
-                    print('Im here')
                     clone = self.clones[-1]
                     m = len(clone.pos)                 # number of monomers already present in present polymer
                     clone.Z = self.Z
