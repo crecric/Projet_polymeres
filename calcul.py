@@ -48,12 +48,13 @@ class LatticePolymer:
             Pruning strength (as in lower threshold = c_m * current estimator of Z)
         '''
         # Positioning the initial monomer
-        self.pos = [[0, 0, 0]]
-        self.weight = 1
-        if self.interacting:
-            # The first iteration will wrongly count -1 occupied neighboring sites (cf number_pairs)
-            # The weight has to be balanced in accordance.
-            self.weight = np.exp(-self.beta_eps)
+        if start == 1:
+            self.pos = [[0, 0, 0]]
+            self.weight = 1
+            if self.interacting:
+                # The first iteration will wrongly count -1 occupied neighboring sites (cf number_pairs)
+                # The weight has to be balanced in accordance.
+                self.weight = np.exp(-self.beta_eps)
 
         # Looping on the walk
         try:
@@ -79,7 +80,7 @@ class LatticePolymer:
         # If control_weight prematuraly kills a polymer
         except BreakException:
             pass
-
+        
         self.pos = np.array(self.pos)
 
     def number_neighbors(self):
@@ -222,6 +223,7 @@ class MonteCarlo(LatticePolymer):
                     clone.Z = self.Z
                     clone.gen_walk(m, perm, c_m)       # Processing polymer growth on top of the clone
                     self.history[self.trial] = clone        
+                    self.clones.remove(clone)
 
                 # Else generating polymer from scratch
                 else:    
@@ -234,10 +236,9 @@ class MonteCarlo(LatticePolymer):
         '''
         Computes the weighted average squared norm of a group of polymers
         '''
-        # Weighted averaged length
         return np.average([self.history[trial].length() for trial in range(self.n)], \
                           weights=[self.history[trial].weight for trial in range(self.n)])
-    
+
     # def estimate_Z(self, trials):
     #     '''
     #     This function estimates a partition function for sized-L polymers (all possible Ls) with a specific number of trials.
