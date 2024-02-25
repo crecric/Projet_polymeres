@@ -64,7 +64,7 @@ class LatticePolymer:
                 if perm and step >= 3:
                     # Pruning/enriching
                     self.control_weight(step, c_m)
-                self.Z[step] = (1/(self.trial+1)) * int(self.Z[step]*self.trial + self.weight)
+                    self.Z[step] = (1/(self.trial+1)) * int(self.Z[step]*self.trial + self.weight)
 
                 # Stoping the walk when it reaches a closed-loop of neighbors
                 if self.number_neighbors() == 0:
