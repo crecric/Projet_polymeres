@@ -1,10 +1,7 @@
 import numpy as np
-from calcul import LatticePolymer
+from calcul import LatticePolymer, MonteCarlo
 import visualisation
 import matplotlib as mpl
-from calcul import MonteCarlo
-from copy import copy
-from numpy import linalg
 
 # Params
 N = 1000            # Number of monomers
@@ -12,7 +9,7 @@ beta_eps = -0  # beta*eps
 n = 100              # Number of polymers
 
 # Generating a group of polymers with Rosenbluth method
-mcgroup = MonteCarlo(n,N)
+mcgroup = MonteCarlo(n, N)
 mcgroup.rosenbluth(perm=False)
 groupPos = np.array(mcgroup.history[0].pos)
 for i in range(1,n):
