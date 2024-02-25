@@ -64,7 +64,10 @@ class LatticePolymer:
                 if perm and step >= 3:
                     # Pruning/enriching
                     self.control_weight(step, c_m)
+                try:
                     self.Z[step] = (1/(self.trial+1)) * int(self.Z[step]*self.trial + self.weight)
+                except OverflowError:
+                    pass
 
                 # Stoping the walk when it reaches a closed-loop of neighbors
                 if self.number_neighbors() == 0:
@@ -191,7 +194,7 @@ class MonteCarlo(LatticePolymer):
         '''
         self.n = n
         LatticePolymer.__init__(self, N, constraint, beta_eps)
-        self.history = np.empty(shape=self.n, dtype=MonteCarlo)
+        self.history = {'weight': [], 'pos': []}
 
     def rosenbluth(self, perm=False, **kwargs):
         '''
@@ -211,8 +214,9 @@ class MonteCarlo(LatticePolymer):
             print('Simulating polymer %d:' % self.trial)
             if self.trial < start or not perm:
                 self.gen_walk(perm=False)
-                self.history[self.trial] = copy(self)
-
+                self.history['weight'].append(self.weight)
+                self.history['pos'].append(self.pos) 
+                
             else:
                 # Cheking if a clone has been generated for this trial
                 if self.clones: # and self.history[trial-1].status == 'killed':
