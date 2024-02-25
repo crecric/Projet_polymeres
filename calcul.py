@@ -210,7 +210,6 @@ class MonteCarlo(LatticePolymer):
         self.clones = []
         while self.trial < self.n:
             print('Simulating polymer %d:' % self.trial)
-
             if self.trial < start or not perm:
                 self.gen_walk(perm=False)
                 self.history[self.trial] = copy(self)
@@ -219,9 +218,14 @@ class MonteCarlo(LatticePolymer):
                 # Cheking if a clone has been generated for this trial
                 if self.clones: # and self.history[trial-1].status == 'killed':
                     clone = self.clones[-1]
-                    m = len(clone.pos)                 # number of monomers already present in present polymer
-                    clone.Z = self.Z
+                    clone.clones = []                  # Freeing the clone's clones in order to update real list of clones
+                    m = len(clone.pos)                 # Number of monomers already present in present polymer
+                    clone.Z = self.Z                   # Because the clone might have been generated some trials before
                     clone.gen_walk(m, perm, c_m)       # Processing polymer growth on top of the clone
+
+                    # Updating list of clones
+                    for c in clone.clones:
+                        self.clones.append(c)
                     self.history[self.trial] = clone        
                     self.clones.remove(clone)
 
