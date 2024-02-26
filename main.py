@@ -6,11 +6,11 @@ import matplotlib as mpl
 # Params
 N = 100            # Number of monomers
 beta_eps = -0  # beta*eps
-n = 10              # Number of polymers
+n = 200              # Number of polymers
 
 # Generating a group of polymers with Rosenbluth method
 mcgroup = MonteCarlo(n, N)
-mcgroup.rosenbluth(perm=False)
+mcgroup.rosenbluth(perm=True, c_m=10)
 # groupPos = np.array(mcgroup.history[0].pos)
 # for i in range(1,n):
 #     groupPos = np.vstack((groupPos,mcgroup.history[i].pos))

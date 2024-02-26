@@ -144,9 +144,18 @@ class LatticePolymer:
 
         elif self.weight > W_p:
             self.weight /= 2
-            clone = copy(self)
-            self.clones.append(clone)
+            self.clones.append(self.checkpoint())
             print('%sPolymer has been cloned!%s' % (Fore.CYAN, Style.RESET_ALL))
+
+    def checkpoint(self):
+        '''
+        This function saves the key properties of a polymer at any step of its growth.
+        '''
+        return {'weight': copy(self.weight), 'pos': copy(self.pos)}
+    
+    def reset(self, weight, pos):
+        self.weight = weight
+        self.pos = pos
 
     def update_weight(self):
         '''
@@ -195,6 +204,8 @@ class MonteCarlo(LatticePolymer):
         self.n = n
         LatticePolymer.__init__(self, N, constraint, beta_eps)
         self.history = {'weight': [], 'pos': []}
+        self.clones = []
+        # self.clones will eventually take the form [clone0_properties, clone1_properties, ...]
 
     def rosenbluth(self, perm=False, **kwargs):
         '''
@@ -206,36 +217,31 @@ class MonteCarlo(LatticePolymer):
         c_m : float
             Pruning strength (as in lower threshold = c_m * current estimator of Z)
         '''
-        c_m = kwargs.get('c_m', 1) # lower threshold
+        c_m = kwargs.get('c_m', 1)   # lower threshold
         start = 3                    # pruning/enriching is only applied after some trials
         self.trial = 0
-        self.clones = []
+
         while self.trial < self.n:
             print('Simulating polymer %d:' % self.trial)
             if self.trial < start or not perm:
                 self.gen_walk(perm=False)
-                self.history['weight'].append(self.weight)
-                self.history['pos'].append(self.pos) 
                 
             else:
                 # Cheking if a clone has been generated for this trial
                 if self.clones: # and self.history[trial-1].status == 'killed':
                     clone = self.clones[-1]
-                    clone.clones = []                  # Freeing the clone's clones in order to update real list of clones
-                    m = len(clone.pos)                 # Number of monomers already present in present polymer
-                    clone.Z = self.Z                   # Because the clone might have been generated some trials before
-                    clone.gen_walk(m, perm, c_m)       # Processing polymer growth on top of the clone
+                    m = len(clone['pos'])                       # Number of monomers already present in present polymer
+                    self.reset(clone['weight'], clone['pos'])
+                    self.gen_walk(m, perm, c_m)                 # Processing polymer growth on top of the clone
 
-                    # Updating list of clones
-                    for c in clone.clones:
-                        self.clones.append(c)
-                    self.history[self.trial] = clone        
                     self.clones.remove(clone)
 
                 # Else generating polymer from scratch
                 else:    
                     self.gen_walk(perm=perm, c_m=c_m)
-                    self.history[self.trial] = copy(self)
+
+            self.history['weight'].append(self.weight)
+            self.history['pos'].append(self.pos) 
 
             self.trial += 1
 
