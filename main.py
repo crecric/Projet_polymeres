@@ -7,17 +7,21 @@ from copy import copy
 from numpy import linalg
 
 # Params
-N = 1000            # Number of monomers
+N = 100           # Number of monomers
 beta_eps = -0  # beta*eps
 n = 100              # Number of polymers
 
 # Generating a group of polymers with Rosenbluth method
 mcgroup = MonteCarlo(n,N)
 mcgroup.rosenbluth(perm=False)
+print(mcgroup.compute_re())
+print(mcgroup.error())
+'''
 groupPos = np.array(mcgroup.history[0].pos)
 for i in range(1,n):
     groupPos = np.vstack((groupPos,mcgroup.history[i].pos))
 groupPos = np.array(groupPos).T
+'''
 
 
 # Generating polymer
@@ -33,4 +37,4 @@ groupPos = np.array(groupPos).T
 
 # Visualisation of a group of polymers
 
-visualisation.polyCloud3D(groupPos)
+# visualisation.polyCloud3D(groupPos)

@@ -174,21 +174,21 @@ class MonteCarlo(LatticePolymer):
         # err_a = np.sqrt((n/(n-1))*(np.sum([self.history[trial].weight**2*(self.history[trial].length()**2- np.sum([self.history[j].length() for j in range(self.n)]))**2) for trial in range(self.n)]/(w**2))
 
         # Boostrapping
-        num_bootstrap_samples = 1000
+        num_bootstrap_samples = 100
     
          # Table of zero
         bootstrap_lengths = np.zeros(num_bootstrap_samples)
     
         for i in range(num_bootstrap_samples):
             bootstrap_indices = np.random.choice(self.n, size=self.n, replace=True)
-            bootstrap_lengths[i] = 1/n*np.sum([self.history[k].length() for k in n])  #ici je suis vraiment pas très sure de moi. Dans ma tête le calcul est clair mais jsp si je l'implémente bien
-            # Normalement on a enregistré la moyenne des longeurs de polymère de chaque échantillon boostrap sample
+
+            l_w = np.sum([self.history[trial].weight*self.history[trial].length() for trial in bootstrap_indices])
+            w = np.sum([self.history[trial].weight for trial in bootstrap_indices])
+            bootstrap_lengths[i] = l_w/w
 
          # standard error 
-        bootstrap_error = np.sqrt((1/num_bootstrap_samples*np.sum([(bootstrap_lengths[i])**2 for i in num_bootstrap_samples]))-(1/num_bootstrap_samples*np.sum([bootstrap_lengths[i] for i in num_bootstrap_samples]))**2)
-    
-        return bootstrap_error
-
+        error = np.std(bootstrap_lengths)
+        return error
 
 # polymer.sample_re(rosenbluth='perm')
 # class Observables(LatticePolymer):
