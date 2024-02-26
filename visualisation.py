@@ -51,7 +51,7 @@ def polyCloud3D(groupPos):
     # Plotting the discrete heatmap
     ax = plt.figure().add_subplot(projection='3d')
     color = points**(1/6)
-    size = points**(1)
+    size = points**(1/2)
     ax.scatter(unique[0], unique[1], unique[2], c=-color, cmap='inferno', s=size, alpha=0.5)
     
     ax.grid(True)

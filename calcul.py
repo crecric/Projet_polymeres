@@ -22,6 +22,7 @@ class LatticePolymer:
         '''
         # Setting Interaction 
         self.beta_eps = beta_eps
+        self.coeff = 1
         if self.beta_eps == 0:
             self.interacting = False
         else:
@@ -102,7 +103,7 @@ class LatticePolymer:
     def number_pairs(self):
         '''
         This function computes the number of occupied neighbors at a given site in a history of steps. 
-        It is relevent to use in the case where a polymer chain can no longer be extended (the final step is surrounded by 6 neighbors),
+        It is relevant to use in the case where a polymer chain can no longer be extended (the final step is surrounded by 6 neighbors),
         or to calculate the weight.
         '''
         neighbors = self.neighborhood(self.pos[-1])
@@ -162,15 +163,17 @@ class LatticePolymer:
         Updates weight according to the chosen random walk pattern.
         '''
         if not self.interacting:
-            self.weight *= self.number_neighbors()
+            self.weight = self.weight*self.number_neighbors()/self.coeff
         else: 
-            self.weight *= self.number_neighbors()*np.exp(-self.beta_eps*self.number_pairs())
+            self.weight *= self.number_neighbors()*np.exp(-self.beta_eps*self.number_pairs())/self.coeff
 
-    def length(self):
+        #print(self.number_neighbors())
+    @staticmethod
+    def length(pos):
         '''
         Computes the squared length of a polymer (squared norm between beginning and end of said polymer).
         '''
-        return np.linalg.norm(self.pos[-1]-self.pos[0], 2)**2
+        return np.linalg.norm(pos[-1]-pos[0], 2)**2
     
     def gyration(self):
         '''
@@ -194,14 +197,16 @@ class MonteCarlo(LatticePolymer):
     Generates collection of polymers.
     Returns thermodynamic observables.
     '''
-    def __init__(self, n=10, N=100, constraint='force', beta_eps=0):
+    def __init__(self, n=1, N=100, constraint='force', beta_eps=0):
         '''
         Parameters
         ----------
         n : int
           Number of monte carlo steps (number of generated polymers)
         '''
+
         self.n = n
+        self.meanWeight = 1
         LatticePolymer.__init__(self, N, constraint, beta_eps)
         self.history = {'weight': [], 'pos': []}
         self.clones = []
@@ -217,6 +222,17 @@ class MonteCarlo(LatticePolymer):
         c_m : float
             Pruning strength (as in lower threshold = c_m * current estimator of Z)
         '''
+        if self.N > 10:
+
+            lilpoly = MonteCarlo(self.n, self.N, constraint=self.constraint, beta_eps=self.beta_eps)
+            lilpoly.N=int(self.N/2)
+            lilpoly.rosenbluth(perm)
+            lilpoly.coeff = 6 - (np.mean(lilpoly.history['weight']))**(1/self.N)
+            #print(len(lilpoly.history['weight']))
+            print(lilpoly.coeff)
+            print(lilpoly.history['weight'])
+            self.coeff = lilpoly.coeff
+
         c_m = kwargs.get('c_m', 1)   # lower threshold
         start = 3                    # pruning/enriching is only applied after some trials
         self.trial = 0
@@ -249,8 +265,8 @@ class MonteCarlo(LatticePolymer):
         '''
         Computes the weighted average squared norm of a group of polymers
         '''
-        return np.average([self.history[trial].length() for trial in range(self.n)], \
-                          weights=[self.history[trial].weight for trial in range(self.n)])
+        return np.average([self.length(self.history['pos'][trial]) for trial in range(self.n)], \
+                          weights=[self.history['weight'][trial] for trial in range(self.n)])
 
     # def estimate_Z(self, trials):
     #     '''

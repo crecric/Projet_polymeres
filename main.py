@@ -4,18 +4,20 @@ import visualisation
 import matplotlib as mpl
 
 # Params
-N = 100            # Number of monomers
+N = 100         # Number of monomers
 beta_eps = -0  # beta*eps
-n = 200              # Number of polymers
+n = 10              # Number of polymers
 
 # Generating a group of polymers with Rosenbluth method
 mcgroup = MonteCarlo(n, N)
-mcgroup.rosenbluth(perm=True, c_m=10)
-# groupPos = np.array(mcgroup.history[0].pos)
-# for i in range(1,n):
-#     groupPos = np.vstack((groupPos,mcgroup.history[i].pos))
-# groupPos = np.array(groupPos).T
-
+mcgroup.rosenbluth(perm=False, c_m=1)
+groupPos = np.array(mcgroup.history['pos'][0])
+for i in range(1,n):
+     groupPos = np.vstack((groupPos,mcgroup.history['pos'][i]))
+groupPos = np.array(groupPos).T
+groupweight=np.array(mcgroup.history['weight'][0])
+print(groupweight)
+print(mcgroup.compute_re())
 
 # Generating polymer
 # polymer = LatticePolymer(N, constraint = "force", beta_eps=beta_eps)
@@ -30,4 +32,4 @@ mcgroup.rosenbluth(perm=True, c_m=10)
 
 # Visualisation of a group of polymers
 
-# visualisation.polyCloud3D(groupPos)
+visualisation.polyCloud3D(groupPos)
