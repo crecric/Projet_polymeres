@@ -4,8 +4,8 @@ import visualisation
 import matplotlib as mpl
 
 # Params
-N = 100         # Number of monomers
-beta_eps = -0  # beta*eps
+N = 1000         # Number of monomers
+beta_eps = -0.1  # beta*eps
 n = 10              # Number of polymers
 
 # Generating a group of polymers with Rosenbluth method
