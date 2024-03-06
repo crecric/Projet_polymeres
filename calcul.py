@@ -3,6 +3,7 @@ from random import choice, uniform
 from copy import deepcopy as copy
 from tqdm import tqdm
 from colorama import Fore, Style
+from bisect import insort
 
 class LatticePolymer:
     def __init__(self, N, constraint='force', beta_eps=0):
@@ -60,12 +61,26 @@ class LatticePolymer:
         try:
             for step in tqdm(range(start, self.N)):
                 self.update_weight()
+                
                 # :TODO: The following if condition is dumb
-                if perm and step >= 3:
+                if perm and step >= 3 and step <= 0.9*self.N:
                     # Pruning/enriching
                     self.control_weight(step, c_m)
                 try:
-                    self.Z[step] = (1/(self.trial+1)) * int(self.Z[step]*self.trial + self.weight)
+                    insort(self.sortedWeights[step],self.weight)
+                    #print(self.sortedWeights[step])
+                    y = [x-self.sortedWeights[step][-1] for x in self.sortedWeights[step]]
+                    diffweights = [abs(z) for z in y]
+                    j=len(self.sortedWeights[step])-1
+                    #print(self.sortedWeights[step])
+                    while diffweights[j] < diffweights[-1]/30 and j > 0:
+                        #print("im in")
+                        j-=1
+                    # print('k=',k)
+                    a = 1+np.sum(1/(10**diffweights[weight]) for weight in range(j,len(self.sortedWeights[step])))
+                    #print('diffweights = ' ,diffweights)
+                    #print('a=',a)
+                    self.Z[step] = np.log10(1/(self.trial+1)) + np.log10(a) + self.sortedWeights[step][-1]
                 except OverflowError:
                     pass
 
@@ -132,8 +147,8 @@ class LatticePolymer:
         # PERM parameters
         c_p = 10*c_m
         # Current estimator of partition function
-        W_m = c_m*self.Z[step]
-        W_p = c_p*self.Z[step]
+        W_m = np.log10(c_m)+self.Z[step]
+        W_p = np.log10(c_p)+self.Z[step]
 
         # Pruning
         if self.weight < W_m:
@@ -142,10 +157,10 @@ class LatticePolymer:
                 raise BreakException()
             else:
                 print('%sPolymer survived!%s' % (Fore.GREEN, Style.RESET_ALL))
-                self.weight *= 2
+                self.weight += np.log10(2)
 
         elif self.weight > W_p:
-            self.weight /= 2
+            self.weight -= np.log10(2)
             self.clones.append(self.checkpoint())
             print('%sPolymer has been cloned!%s' % (Fore.CYAN, Style.RESET_ALL))
 
@@ -171,7 +186,8 @@ class LatticePolymer:
                 self.weight += np.log10(numb_neigh*np.exp(-self.beta_eps*(5-numb_neigh)))
         else:
             self.weight = 0
-        #print(self.number_neighbors())
+
+                #print(self.number_neighbors())
     @staticmethod
     def length(pos):
         '''
@@ -210,7 +226,7 @@ class MonteCarlo(LatticePolymer):
         '''
         self.failed = 0
         self.n = n
-        self.meanWeight = 1
+        self.sortedWeights = [[] for _ in range(N)] 
         LatticePolymer.__init__(self, N, constraint, beta_eps)
         self.history = {'weight': [], 'pos': []}
         self.clones = []
@@ -272,13 +288,16 @@ class MonteCarlo(LatticePolymer):
         self.maxWeights = np.sort(self.history['weight'])[::-1]
         print('maxWeights = ', self.maxWeights)
         diffweights = abs(self.maxWeights-self.maxWeights[0])
-        k=self.n//3
+        k=0
+        while diffweights[k] < diffweights[0]/30:
+            k+=1
         # print('k=',k)
         a = 1+np.sum(1/(10**diffweights[weight]) for weight in range(1,k))
         print('diffweights = ' ,diffweights)
         print('a=',a)
         
-        return np.sum([self.length(self.history['pos'][trial])*(10**(self.history['weight'][trial]-np.log10(a)-self.maxWeights[0])) for trial in range(self.n)])
+        return np.sum([self.length(self.history['pos'][trial])*\
+                       (10**(self.history['weight'][trial]-np.log10(a)-self.maxWeights[0])) for trial in range(self.n)])
         
         # return np.average([self.length(self.history['pos'][trial]) for trial in range(self.n)], \
         #                   weights=[self.history['weight'][trial] for trial in range(self.n)])
