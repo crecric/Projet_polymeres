@@ -22,7 +22,6 @@ class LatticePolymer:
         '''
         # Setting Interaction 
         self.beta_eps = beta_eps
-        self.coeff = 1
         if self.beta_eps == 0:
             self.interacting = False
         else:
@@ -51,11 +50,11 @@ class LatticePolymer:
         # Positioning the initial monomer
         if start == 1:
             self.pos = [[0, 0, 0]]
-            self.weight = 1
+            self.weight = 0
             if self.interacting:
                 # The first iteration will wrongly count -1 occupied neighboring sites (cf number_pairs)
                 # The weight has to be balanced in accordance.
-                self.weight = np.exp(-self.beta_eps)
+                self.weight = np.log10(np.exp(-self.beta_eps))
 
         # Looping on the walk
         try:
@@ -65,13 +64,14 @@ class LatticePolymer:
                 if perm and step >= 3:
                     # Pruning/enriching
                     self.control_weight(step, c_m)
-                    try:
-                        self.Z[step] = (1/(self.trial+1)) * int(self.Z[step]*self.trial + self.weight)
-                    except OverflowError:
-                        pass
+                try:
+                    self.Z[step] = (1/(self.trial+1)) * int(self.Z[step]*self.trial + self.weight)
+                except OverflowError:
+                    pass
 
                 # Stoping the walk when it reaches a closed-loop of neighbors
                 if self.number_neighbors() == 0:
+                    self.failed += 1
                     break
                 # Generating a new direction
                 x, y, z = self.random_step()
@@ -83,6 +83,7 @@ class LatticePolymer:
 
         # If control_weight prematuraly kills a polymer
         except BreakException:
+            #self.genwalk(perm = perm, c_m = c_m)
             pass
         
         self.pos = np.array(self.pos)
@@ -100,22 +101,22 @@ class LatticePolymer:
                 c += 1
         return c
     
-    def number_pairs(self):
-        '''
-        This function computes the number of occupied neighbors at a given site in a history of steps. 
-        It is relevant to use in the case where a polymer chain can no longer be extended (the final step is surrounded by 6 neighbors),
-        or to calculate the weight.
-        '''
-        neighbors = self.neighborhood(self.pos[-1])
-        # Counting the number of occupied neighbors
-        c = -1  
-        # Since we will certainly count the occupied neighbor from which we just moved, we start the count at -1. 
-        # An adjustment was added in the __init__ function to account for the difference in treatment for the very first iteration,
-        # where there is no occupied neighbor that we shouldn't count.
-        for neighbor in neighbors:
-            if neighbor in self.pos:
-                c += 1
-        return c
+    # def number_pairs(self):
+    #     '''
+    #     This function computes the number of occupied neighbors at a given site in a history of steps. 
+    #     It is relevant to use in the case where a polymer chain can no longer be extended (the final step is surrounded by 6 neighbors),
+    #     or to calculate the weight.
+    #     '''
+    #     neighbors = self.neighborhood(self.pos[-1])
+    #     # Counting the number of occupied neighbors
+    #     c = -1  
+    #     # Since we will certainly count the occupied neighbor from which we just moved, we start the count at -1. 
+    #     # An adjustment was added in the __init__ function to account for the difference in treatment for the very first iteration,
+    #     # where there is no occupied neighbor that we shouldn't count.
+    #     for neighbor in neighbors:
+    #         if neighbor in self.pos:
+    #             c += 1
+    #     return c
     
     def random_step(self):
         '''
@@ -162,11 +163,14 @@ class LatticePolymer:
         '''
         Updates weight according to the chosen random walk pattern.
         '''
-        if not self.interacting:
-            self.weight = self.weight*self.number_neighbors()/self.coeff
-        else: 
-            self.weight *= self.number_neighbors()*np.exp(-self.beta_eps*self.number_pairs())/self.coeff
-
+        numb_neigh = self.number_neighbors()
+        if numb_neigh !=0:
+            if not self.interacting:
+                self.weight += np.log10(numb_neigh)
+            else: 
+                self.weight += np.log10(numb_neigh*np.exp(-self.beta_eps*(5-numb_neigh)))
+        else:
+            self.weight = 0
         #print(self.number_neighbors())
     @staticmethod
     def length(pos):
@@ -204,7 +208,7 @@ class MonteCarlo(LatticePolymer):
         n : int
           Number of monte carlo steps (number of generated polymers)
         '''
-
+        self.failed = 0
         self.n = n
         self.meanWeight = 1
         LatticePolymer.__init__(self, N, constraint, beta_eps)
@@ -222,25 +226,25 @@ class MonteCarlo(LatticePolymer):
         c_m : float
             Pruning strength (as in lower threshold = c_m * current estimator of Z)
         '''
-        if self.N > 10:
+        # if self.N > 10:
 
-            lilpoly = MonteCarlo(self.n, self.N, constraint=self.constraint, beta_eps=self.beta_eps)
-            lilpoly.N=int(self.N/2)
-            lilpoly.rosenbluth(perm)
-            lilpoly.coeff = 6 - (np.mean(lilpoly.history['weight']))**(1/self.N)
-            #print(len(lilpoly.history['weight']))
-            print(lilpoly.coeff)
-            print(lilpoly.history['weight'])
-            self.coeff = lilpoly.coeff
-
+        #     lilpoly = MonteCarlo(self.n, self.N, constraint=self.constraint, beta_eps=self.beta_eps)
+        #     lilpoly.N=int(self.N/2)
+        #     lilpoly.rosenbluth(perm)
+        #     lilpoly.coeff = 6 - (np.mean(lilpoly.history['weight']))**(1/self.N)
+        #     #print(len(lilpoly.history['weight']))
+        #     print(lilpoly.coeff)
+        #     print(lilpoly.history['weight'])
+        #     self.coeff = lilpoly.coeff
+        self.perm = perm
         c_m = kwargs.get('c_m', 1)   # lower threshold
         start = 3                    # pruning/enriching is only applied after some trials
         self.trial = 0
 
         while self.trial < self.n:
             print('Simulating polymer %d:' % self.trial)
-            if self.trial < start or not perm:
-                self.gen_walk(perm=False)
+            if self.trial < start or not self.perm:
+                self.gen_walk(perm = self.perm)
                 
             else:
                 # Cheking if a clone has been generated for this trial
@@ -248,13 +252,13 @@ class MonteCarlo(LatticePolymer):
                     clone = self.clones[-1]
                     m = len(clone['pos'])                       # Number of monomers already present in present polymer
                     self.reset(clone['weight'], clone['pos'])
-                    self.gen_walk(m, perm, c_m)                 # Processing polymer growth on top of the clone
+                    self.gen_walk(m, perm = self.perm, c_m = c_m)                 # Processing polymer growth on top of the clone
 
                     self.clones.remove(clone)
 
                 # Else generating polymer from scratch
                 else:    
-                    self.gen_walk(perm=perm, c_m=c_m)
+                    self.gen_walk(perm=self.perm, c_m=c_m)
 
             self.history['weight'].append(self.weight)
             self.history['pos'].append(self.pos) 
@@ -265,8 +269,19 @@ class MonteCarlo(LatticePolymer):
         '''
         Computes the weighted average squared norm of a group of polymers
         '''
-        return np.average([self.length(self.history['pos'][trial]) for trial in range(self.n)], \
-                          weights=[self.history['weight'][trial] for trial in range(self.n)])
+        self.maxWeights = np.sort(self.history['weight'])[::-1]
+        print('maxWeights = ', self.maxWeights)
+        diffweights = abs(self.maxWeights-self.maxWeights[0])
+        k=self.n//3
+        # print('k=',k)
+        a = 1+np.sum(1/(10**diffweights[weight]) for weight in range(1,k))
+        print('diffweights = ' ,diffweights)
+        print('a=',a)
+        
+        return np.sum([self.length(self.history['pos'][trial])*(10**(self.history['weight'][trial]-np.log10(a)-self.maxWeights[0])) for trial in range(self.n)])
+        
+        # return np.average([self.length(self.history['pos'][trial]) for trial in range(self.n)], \
+        #                   weights=[self.history['weight'][trial] for trial in range(self.n)])
 
     # def estimate_Z(self, trials):
     #     '''

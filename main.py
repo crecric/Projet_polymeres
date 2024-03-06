@@ -4,18 +4,19 @@ import visualisation
 import matplotlib as mpl
 
 # Params
-N = 1000         # Number of monomers
-beta_eps = -0.1  # beta*eps
+N = 10000         # Number of monomers
+beta_eps = -0.5  # beta*eps
 n = 10              # Number of polymers
 
 # Generating a group of polymers with Rosenbluth method
-mcgroup = MonteCarlo(n, N)
+mcgroup = MonteCarlo(n, N, beta_eps = beta_eps)
 mcgroup.rosenbluth(perm=False, c_m=1)
+print(mcgroup.failed)
 groupPos = np.array(mcgroup.history['pos'][0])
 for i in range(1,n):
      groupPos = np.vstack((groupPos,mcgroup.history['pos'][i]))
 groupPos = np.array(groupPos).T
-groupweight=np.array(mcgroup.history['weight'][0])
+groupweight=np.array(mcgroup.history['weight'])
 print(groupweight)
 print(mcgroup.compute_re())
 
@@ -31,5 +32,4 @@ print(mcgroup.compute_re())
 #visualisation.singPolyVisu3D(pos[0], pos[1], pos[2])
 
 # Visualisation of a group of polymers
-
 visualisation.polyCloud3D(groupPos)
