@@ -6,8 +6,7 @@ import matplotlib as mpl
 # Params
 N = 1000         # Number of monomers
 beta_eps = -0  # beta*eps
-n = 1000              # Number of polymers
-
+n = 20              # Number of polymers
 # Generating a group of polymers with Rosenbluth method
 mcgroup = MonteCarlo(n, N, beta_eps = beta_eps)
 mcgroup.rosenbluth(perm=True, c_m=1)
@@ -19,6 +18,7 @@ groupPos = np.array(groupPos).T
 groupweight=np.array(mcgroup.history['weight'])
 #print(groupweight)
 print("re :", mcgroup.compute_re())
+print("Z :", mcgroup.Z)
 
 # Generating polymer
 # polymer = LatticePolymer(N, constraint = "force", beta_eps=beta_eps)

@@ -33,7 +33,7 @@ class LatticePolymer:
         if self.constraint not in ['force', 'length']:
             raise NotImplementedError('Please select constraint in ["force", "length"].')
 
-        self.Z = np.ones(shape=self.N)
+        self.Z = np.zeros(shape=self.N)
         self.trial = 0
 
     def gen_walk(self, start=1, perm=False, c_m=1):
@@ -57,36 +57,39 @@ class LatticePolymer:
                 # The weight has to be balanced in accordance.
                 self.weight = np.log10(np.exp(-self.beta_eps))
 
+        self.status = 'survive'
         # Looping on the walk
         try:
             for step in tqdm(range(start, self.N)):
                 self.update_weight()
-                
+                self.cooldown+=1
                 # :TODO: The following if condition is dumb
-                if perm and step >= 3 and step <= 0.9*self.N:
+                if perm and self.cooldown >= self.N/50 and step <= 0.9*self.N:
                     # Pruning/enriching
                     self.control_weight(step, c_m)
                 try:
                     insort(self.sortedWeights[step],self.weight)
-                    #print(self.sortedWeights[step])
+                   
                     y = [x-self.sortedWeights[step][-1] for x in self.sortedWeights[step]]
                     diffweights = [abs(z) for z in y]
-                    j=len(self.sortedWeights[step])-1
-                    #print(self.sortedWeights[step])
-                    while diffweights[j] < diffweights[-1]/30 and j > 0:
-                        #print("im in")
-                        j-=1
-                    # print('k=',k)
-                    a = 1+np.sum(1/(10**diffweights[weight]) for weight in range(j,len(self.sortedWeights[step])))
+                    # j=len(self.sortedWeights[step])-1
+                    
+                    # while diffweights[j] < diffweights[-1]/30 and j > 0:
+                        
+                    #     j-=1
+                    
+                    zfactor = 1+np.sum(1/(10**diffweights[weight]) for weight in range(1,len(self.sortedWeights[step])))
                     #print('diffweights = ' ,diffweights)
                     #print('a=',a)
-                    self.Z[step] = np.log10(1/(self.trial+1)) + np.log10(a) + self.sortedWeights[step][-1]
+                    self.Z[step] = np.log10(1/(self.trial+1)) + np.log10(zfactor) + self.sortedWeights[step][-1]
                 except OverflowError:
+                    print('hello')
                     pass
 
                 # Stoping the walk when it reaches a closed-loop of neighbors
                 if self.number_neighbors() == 0:
                     self.failed += 1
+                    self.status = 'killed'
                     break
                 # Generating a new direction
                 x, y, z = self.random_step()
@@ -145,7 +148,7 @@ class LatticePolymer:
         This function applies the pruning/enriching algorithm to the Rosenbluth sampling.
         '''
         # PERM parameters
-        c_p = 10*c_m
+        c_p = 10 #*c_m
         # Current estimator of partition function
         W_m = np.log10(c_m)+self.Z[step]
         W_p = np.log10(c_p)+self.Z[step]
@@ -154,15 +157,18 @@ class LatticePolymer:
         if self.weight < W_m:
             if uniform(0, 1) < 0.5:
                 print('%sPolymer killed!%s' % (Fore.RED, Style.RESET_ALL))
+                self.status = 'killed'
                 raise BreakException()
             else:
                 print('%sPolymer survived!%s' % (Fore.GREEN, Style.RESET_ALL))
                 self.weight += np.log10(2)
+                self.status = 'survive'
 
         elif self.weight > W_p:
             self.weight -= np.log10(2)
             self.clones.append(self.checkpoint())
             print('%sPolymer has been cloned!%s' % (Fore.CYAN, Style.RESET_ALL))
+            self.cooldown = 0
 
     def checkpoint(self):
         '''
@@ -260,7 +266,8 @@ class MonteCarlo(LatticePolymer):
         while self.trial < self.n:
             print('Simulating polymer %d:' % self.trial)
             if self.trial < start or not self.perm:
-                self.gen_walk(perm = self.perm)
+                self.cooldown = 0
+                self.gen_walk(perm = False)
                 
             else:
                 # Cheking if a clone has been generated for this trial
@@ -268,18 +275,21 @@ class MonteCarlo(LatticePolymer):
                     clone = self.clones[-1]
                     m = len(clone['pos'])                       # Number of monomers already present in present polymer
                     self.reset(clone['weight'], clone['pos'])
-                    self.gen_walk(m, perm = self.perm, c_m = c_m)                 # Processing polymer growth on top of the clone
+                    self.cooldown = 0
+                    self.gen_walk(m, perm = True, c_m = c_m)                 # Processing polymer growth on top of the clone
 
                     self.clones.remove(clone)
 
                 # Else generating polymer from scratch
                 else:    
-                    self.gen_walk(perm=self.perm, c_m=c_m)
+                    self.cooldown = 0
+                    self.gen_walk(perm=True, c_m=c_m)
 
-            self.history['weight'].append(self.weight)
-            self.history['pos'].append(self.pos) 
+            if self.status == 'survive':
+                self.history['weight'].append(self.weight)
+                self.history['pos'].append(self.pos) 
 
-            self.trial += 1
+                self.trial += 1
 
     def compute_re(self):
         '''
@@ -289,15 +299,16 @@ class MonteCarlo(LatticePolymer):
         print('maxWeights = ', self.maxWeights)
         diffweights = abs(self.maxWeights-self.maxWeights[0])
         k=0
-        while diffweights[k] < diffweights[0]/30:
+        while diffweights[k] < 100 and k < self.n-1:
             k+=1
-        # print('k=',k)
-        a = 1+np.sum(1/(10**diffweights[weight]) for weight in range(1,k))
+        print('k=',k)
+        #Weight factor: factor that multiplies w_max to approximate the w_i sum
+        wfactor = 1+np.sum(1/(10**diffweights[weight]) for weight in range(1,k))
         print('diffweights = ' ,diffweights)
-        print('a=',a)
+        print('wfactor=',wfactor)
         
         return np.sum([self.length(self.history['pos'][trial])*\
-                       (10**(self.history['weight'][trial]-np.log10(a)-self.maxWeights[0])) for trial in range(self.n)])
+                       (10**(self.history['weight'][trial]-np.log10(wfactor)-self.maxWeights[0])) for trial in range(self.n)])
         
         # return np.average([self.length(self.history['pos'][trial]) for trial in range(self.n)], \
         #                   weights=[self.history['weight'][trial] for trial in range(self.n)])
