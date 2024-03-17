@@ -55,31 +55,31 @@ class LatticePolymer:
                 self.weight = np.log10(np.exp(-self.beta_eps))
 
         self.status = 'survive'
+        self.heatup = 0
         # Looping on the walk
         try:
             for step in tqdm(range(start, self.N)):
                 self.update_weight()
-                self.cooldown+=1
-                # :TODO: The following if condition is dumb
+                self.heatup+=1
                 try:
+                    # Adding new weight to list of trials weight
                     insort(self.sortedWeights[step],self.weight)
                     y = [x-self.sortedWeights[step][-1] for x in self.sortedWeights[step]]
-                    diffweights = [abs(z) for z in y]
+
+                    # diffweights = [abs(z) for z in y]
                     # j=len(self.sortedWeights[step])-1
-                    
                     # while diffweights[j] < diffweights[-1]/30 and j > 0:
-                        
                     #     j-=1
-                    zfactor = 1+np.sum(np.power(10, y[:-1]))
+
+                    zfactor = 1+np.sum(np.power(10, y[:-1])) # this is the exact same thing as next but in a more straightforward syntax
                     # zfactor = 1+np.sum(1/(10**diffweights[weight]) for weight in range(len(self.sortedWeights[step])-1))
                     self.Z[step] = np.log10(1/(self.trial+1)) + np.log10(zfactor) + self.sortedWeights[step][-1]
-                    #print('diffweights = ' ,diffweights)
-                    #print('a=',a)
+        
                 except OverflowError:
                     print('hello')
                     pass
     
-                if perm and self.cooldown >= self.N/50 and step <= 0.9*self.N:
+                if perm and self.heatup >= self.N/50 and step <= 0.9*self.N:
                     # Pruning/enriching
                     self.control_weight(step, c_m)
         
@@ -146,7 +146,7 @@ class LatticePolymer:
         This function applies the pruning/enriching algorithm to the Rosenbluth sampling.
         '''
         # PERM parameters
-        c_p = 10 #*c_m
+        c_p = 10*c_m
         # Current estimator of partition function
         W_m = np.log10(c_m)+self.Z[step]
         W_p = np.log10(c_p)+self.Z[step]
@@ -165,7 +165,7 @@ class LatticePolymer:
             self.weight -= np.log10(2)
             self.clones.append(self.checkpoint())
             print('%sPolymer has been cloned!%s' % (Fore.CYAN, Style.RESET_ALL))
-            self.cooldown = 0
+            self.heatup = 0
 
     def checkpoint(self):
         '''
@@ -190,20 +190,20 @@ class LatticePolymer:
         else:
             self.weight = 0
 
-                #print(self.number_neighbors())
     @staticmethod
     def length(pos):
         '''
-        Computes the squared length of a polymer (squared norm between beginning and end of said polymer).
+        Computes the squared start-to-end length of a set of vectors.
         '''
         return np.linalg.norm(pos[-1]-pos[0], 2)**2
     
-    def gyration(self):
+    @staticmethod
+    def gyration(pos):
         '''
-        Computes the radius of gyration (how "curled up" the polymer is).
+        Computes the radius of gyration (how "curled up" the polymer is) of a set of vectors.
         '''
-        rCM = np.average(self.pos, axis=0)
-        return np.average(np.linalg.norm(self.pos - rCM, ord=2, axis=1)**2)
+        rCM = np.average(pos, axis=0)
+        return np.average(np.linalg.norm(pos - rCM, ord=2, axis=1)**2)
     
     @staticmethod
     def neighborhood(r):
@@ -257,6 +257,7 @@ class MonteCarlo(LatticePolymer):
         #     print(lilpoly.coeff)
         #     print(lilpoly.history['weight'])
         #     self.coeff = lilpoly.coeff
+
         self.perm = perm
         c_m = kwargs.get('c_m', 1)   # lower threshold
         start = 3                    # pruning/enriching is only applied after some trials
@@ -265,30 +266,26 @@ class MonteCarlo(LatticePolymer):
         while self.trial < self.n:
             print('Simulating polymer %d:' % self.trial)
             if self.trial < start or not self.perm:
-                self.cooldown = 0
                 self.gen_walk(perm = False)
                 
             else:
                 # Cheking if a clone has been generated for this trial
                 if self.clones: # and self.history[trial-1].status == 'killed':
                     clone = self.clones[-1]
-                    m = len(clone['pos'])                       # Number of monomers already present in present polymer
+                    m = len(clone['pos'])                           # Number of monomers already present in present polymer
                     self.reset(clone['weight'], clone['pos'])
-                    self.cooldown = 0
-                    self.gen_walk(m, perm = True, c_m = c_m)                 # Processing polymer growth on top of the clone
+                    self.gen_walk(m, perm = True, c_m = c_m)        # Processing polymer growth on top of the clone
 
                     self.clones.remove(clone)
 
                 # Else generating polymer from scratch
                 else:    
-                    self.cooldown = 0
                     self.gen_walk(perm=True, c_m=c_m)
 
             # if self.status == 'survive':
             self.history['weight'].append(self.weight)
             self.history['pos'].append(self.pos) 
             self.trial += 1
-            #     self.trial += 1
 
     def compute_re(self):
         '''
