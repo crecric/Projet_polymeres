@@ -59,21 +59,8 @@ class LatticePolymer:
         # Looping on the walk
         try:
             for step in tqdm(range(start, self.N)):
-                self.update_weight()
+                self.update_weight(step)
                 self.heatup+=1
-                try:
-                    # Finding the max weight
-                    self.weights[step].append(self.weight)
-                    w_max = np.array(self.weights[step]).max()
-                    y = [x-w_max for x in self.weights[step]]
-
-                    zfactor = np.sum(np.power(10, y)) 
-                    trials = len(self.weights[step])
-                    self.Z[step] = np.log10(1/(trials)) + np.log10(zfactor) + w_max
-        
-                except OverflowError:
-                    print('%sOVERFLOWERROR passed%s' % (Fore.RED, Style.RESET_ALL))
-                    pass
     
                 if perm and self.heatup >= self.N//50 and step <= int(0.9*self.N):
                     # Pruning/enriching
@@ -183,7 +170,7 @@ class LatticePolymer:
         except OverflowError:
             print('%sOVERFLOWERROR passed%s' % (Fore.RED, Style.RESET_ALL))
             pass
-        
+
     @staticmethod
     def length(pos):
         '''

@@ -4,9 +4,9 @@ import visualisation
 import matplotlib as mpl
 
 # Params
-N = 500         # Number of monomers
+N = 100         # Number of monomers
 beta_eps = -0  # beta*eps
-n = 50              # Number of polymers
+n = 1000              # Number of polymers
 # Generating a group of polymers with Rosenbluth method
 mcgroup = MonteCarlo(n, N, beta_eps = beta_eps)
 mcgroup.rosenbluth(perm=True, c_m=1)
