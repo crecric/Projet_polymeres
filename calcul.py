@@ -33,9 +33,6 @@ class LatticePolymer:
         if self.constraint not in ['force', 'length']:
             raise NotImplementedError('Please select constraint in ["force", "length"].')
 
-        self.Z = np.zeros(shape=self.N)
-        self.trial = 0
-
     def gen_walk(self, start=1, perm=False, c_m=1):
         '''
         Generates a chain of random steps to simulate the polymer. It starts at the center of the grid.
@@ -64,12 +61,8 @@ class LatticePolymer:
                 self.update_weight()
                 self.cooldown+=1
                 # :TODO: The following if condition is dumb
-                if perm and self.cooldown >= self.N/50 and step <= 0.9*self.N:
-                    # Pruning/enriching
-                    self.control_weight(step, c_m)
                 try:
                     insort(self.sortedWeights[step],self.weight)
-                   
                     y = [x-self.sortedWeights[step][-1] for x in self.sortedWeights[step]]
                     diffweights = [abs(z) for z in y]
                     # j=len(self.sortedWeights[step])-1
@@ -77,20 +70,25 @@ class LatticePolymer:
                     # while diffweights[j] < diffweights[-1]/30 and j > 0:
                         
                     #     j-=1
-                    
-                    zfactor = 1+np.sum(1/(10**diffweights[weight]) for weight in range(1,len(self.sortedWeights[step])))
+                    zfactor = 1+np.sum(np.power(10, y[:-1]))
+                    # zfactor = 1+np.sum(1/(10**diffweights[weight]) for weight in range(len(self.sortedWeights[step])-1))
+                    self.Z[step] = np.log10(1/(self.trial+1)) + np.log10(zfactor) + self.sortedWeights[step][-1]
                     #print('diffweights = ' ,diffweights)
                     #print('a=',a)
-                    self.Z[step] = np.log10(1/(self.trial+1)) + np.log10(zfactor) + self.sortedWeights[step][-1]
                 except OverflowError:
                     print('hello')
                     pass
-
+    
+                if perm and self.cooldown >= self.N/50 and step <= 0.9*self.N:
+                    # Pruning/enriching
+                    self.control_weight(step, c_m)
+        
                 # Stoping the walk when it reaches a closed-loop of neighbors
                 if self.number_neighbors() == 0:
                     self.failed += 1
                     self.status = 'killed'
                     break
+
                 # Generating a new direction
                 x, y, z = self.random_step()
                 while [x, y, z] in self.pos:
@@ -162,7 +160,6 @@ class LatticePolymer:
             else:
                 print('%sPolymer survived!%s' % (Fore.GREEN, Style.RESET_ALL))
                 self.weight += np.log10(2)
-                self.status = 'survive'
 
         elif self.weight > W_p:
             self.weight -= np.log10(2)
@@ -234,6 +231,8 @@ class MonteCarlo(LatticePolymer):
         self.n = n
         self.sortedWeights = [[] for _ in range(N)] 
         LatticePolymer.__init__(self, N, constraint, beta_eps)
+        self.Z = np.zeros(shape=self.N)
+        self.trial = 0
         self.history = {'weight': [], 'pos': []}
         self.clones = []
         # self.clones will eventually take the form [clone0_properties, clone1_properties, ...]
@@ -285,11 +284,11 @@ class MonteCarlo(LatticePolymer):
                     self.cooldown = 0
                     self.gen_walk(perm=True, c_m=c_m)
 
-            if self.status == 'survive':
-                self.history['weight'].append(self.weight)
-                self.history['pos'].append(self.pos) 
-
-                self.trial += 1
+            # if self.status == 'survive':
+            self.history['weight'].append(self.weight)
+            self.history['pos'].append(self.pos) 
+            self.trial += 1
+            #     self.trial += 1
 
     def compute_re(self):
         '''
