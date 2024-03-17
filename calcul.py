@@ -62,27 +62,30 @@ class LatticePolymer:
                 self.update_weight()
                 self.heatup+=1
                 try:
-                    # Adding new weight to list of trials weight
-                    insort(self.sortedWeights[step],self.weight)
-                    y = [x-self.sortedWeights[step][-1] for x in self.sortedWeights[step]]
+                    # Finding the max weight
+                    insort(self.sortedWeights[step], self.weight)
+                    w_max = self.sortedWeights[step][-1]
+                    # print(self.sortedWeights[step])
+                    y = [x-w_max for x in self.sortedWeights[step]]
 
                     # diffweights = [abs(z) for z in y]
                     # j=len(self.sortedWeights[step])-1
                     # while diffweights[j] < diffweights[-1]/30 and j > 0:
                     #     j-=1
 
-                    zfactor = 1+np.sum(np.power(10, y[:-1])) # this is the exact same thing as next but in a more straightforward syntax
+                    zfactor = np.sum(np.power(10, y)) # this is the exact same thing as next but in a more straightforward syntax
+                    trials = len(self.sortedWeights[step])
                     # zfactor = 1+np.sum(1/(10**diffweights[weight]) for weight in range(len(self.sortedWeights[step])-1))
-                    self.Z[step] = np.log10(1/(self.trial+1)) + np.log10(zfactor) + self.sortedWeights[step][-1]
+                    self.Z[step] = np.log10(1/(trials)) + np.log10(zfactor) + w_max
         
                 except OverflowError:
-                    print('hello')
+                    print('%sOVERFLOWERROR passed%s' % (Fore.RED, Style.RESET_ALL))
                     pass
     
-                if perm and self.heatup >= self.N/50 and step <= 0.9*self.N:
+                if perm and self.heatup >= self.N//50 and step <= int(0.9*self.N):
                     # Pruning/enriching
                     self.control_weight(step, c_m)
-        
+
                 # Stoping the walk when it reaches a closed-loop of neighbors
                 if self.number_neighbors() == 0:
                     self.failed += 1
@@ -156,17 +159,17 @@ class LatticePolymer:
             if uniform(0, 1) < 0.5:
                 print('%sPolymer killed!%s' % (Fore.RED, Style.RESET_ALL))
                 self.status = 'killed'
+                self.failed += 1
                 raise BreakException()
             else:
                 print('%sPolymer survived!%s' % (Fore.GREEN, Style.RESET_ALL))
                 self.weight += np.log10(2)
-
         elif self.weight > W_p:
             self.weight -= np.log10(2)
             self.clones.append(self.checkpoint())
             print('%sPolymer has been cloned!%s' % (Fore.CYAN, Style.RESET_ALL))
             self.heatup = 0
-
+    
     def checkpoint(self):
         '''
         This function saves the key properties of a polymer at any step of its growth.
@@ -186,7 +189,8 @@ class LatticePolymer:
             if not self.interacting:
                 self.weight += np.log10(numb_neigh)
             else: 
-                self.weight += np.log10(numb_neigh*np.exp(-self.beta_eps*(5-numb_neigh)))
+                numb_pairs = 5 - numb_neigh
+                self.weight += np.log10(numb_neigh*np.exp(-self.beta_eps*numb_pairs))
         else:
             self.weight = 0
 
@@ -229,8 +233,8 @@ class MonteCarlo(LatticePolymer):
         '''
         self.failed = 0
         self.n = n
-        self.sortedWeights = [[] for _ in range(N)] 
         LatticePolymer.__init__(self, N, constraint, beta_eps)
+        self.sortedWeights = [[] for _ in range(self.N)]
         self.Z = np.zeros(shape=self.N)
         self.trial = 0
         self.history = {'weight': [], 'pos': []}
@@ -262,7 +266,7 @@ class MonteCarlo(LatticePolymer):
         c_m = kwargs.get('c_m', 1)   # lower threshold
         start = 3                    # pruning/enriching is only applied after some trials
         self.trial = 0
-
+        
         while self.trial < self.n:
             print('Simulating polymer %d:' % self.trial)
             if self.trial < start or not self.perm:
