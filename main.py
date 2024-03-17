@@ -17,7 +17,7 @@ for i in range(1,n):
 groupPos = np.array(groupPos).T
 groupweight=np.array(mcgroup.history['weight'])
 #print(groupweight)
-print("re :", mcgroup.compute_re(99))
+print("re :", mcgroup.compute_re(N-1))
 print("Z :", mcgroup.Z)
 
 # Generating polymer

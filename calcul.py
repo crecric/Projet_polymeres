@@ -53,7 +53,7 @@ class LatticePolymer:
                 # The first iteration will wrongly count -1 occupied neighboring sites (cf number_pairs)
                 # The weight has to be balanced in accordance.
                 self.weight = np.log10(np.exp(-self.beta_eps))
-
+        
         self.status = 'survive'
         self.heatup = 0
         # Looping on the walk
@@ -63,10 +63,11 @@ class LatticePolymer:
                 self.heatup+=1
                 try:
                     # Finding the max weight
-                    insort(self.sortedWeights[step], self.weight)
-                    w_max = self.sortedWeights[step][-1]
+                    self.weights[step].append(self.weight)
+                    # insort(self.sortedWeights[step], self.weight)
+                    w_max = np.array(self.weights[step]).max()
                     # print(self.sortedWeights[step])
-                    y = [x-w_max for x in self.sortedWeights[step]]
+                    y = [x-w_max for x in self.weights[step]]
 
                     # diffweights = [abs(z) for z in y]
                     # j=len(self.sortedWeights[step])-1
@@ -74,7 +75,7 @@ class LatticePolymer:
                     #     j-=1
 
                     zfactor = np.sum(np.power(10, y)) # this is the exact same thing as next but in a more straightforward syntax
-                    trials = len(self.sortedWeights[step])
+                    trials = len(self.weights[step])
                     # zfactor = 1+np.sum(1/(10**diffweights[weight]) for weight in range(len(self.sortedWeights[step])-1))
                     self.Z[step] = np.log10(1/(trials)) + np.log10(zfactor) + w_max
         
@@ -234,9 +235,8 @@ class MonteCarlo(LatticePolymer):
         self.failed = 0
         self.n = n
         LatticePolymer.__init__(self, N, constraint, beta_eps)
-        self.sortedWeights = [[] for _ in range(self.N)]
+        self.weights = [[] for _ in range(self.N)]
         self.Z = np.zeros(shape=self.N)
-        self.trial = 0
         self.history = {'weight': [], 'pos': []}
         self.clones = []
         # self.clones will eventually take the form [clone0_properties, clone1_properties, ...]
@@ -266,7 +266,7 @@ class MonteCarlo(LatticePolymer):
         c_m = kwargs.get('c_m', 1)   # lower threshold
         start = 3                    # pruning/enriching is only applied after some trials
         self.trial = 0
-        
+
         while self.trial < self.n:
             print('Simulating polymer %d:' % self.trial)
             if self.trial < start or not self.perm:
@@ -291,27 +291,33 @@ class MonteCarlo(LatticePolymer):
             self.history['pos'].append(self.pos) 
             self.trial += 1
 
-    def compute_re(self):
+    def compute_re(self, N):
         '''
-        Computes the weighted average squared norm of a group of polymers
+        Computes the observable squared norm of a polymer at a given number of monomers.
         '''
-        self.maxWeights = np.sort(self.history['weight'])[::-1]
-        print('maxWeights = ', self.maxWeights)
-        diffweights = abs(self.maxWeights-self.maxWeights[0])
-        k=0
-        while diffweights[k] < 100 and k < self.n-1:
-            k+=1
-        print('k=',k)
-        #Weight factor: factor that multiplies w_max to approximate the w_i sum
-        wfactor = 1+np.sum(1/(10**diffweights[weight]) for weight in range(1,k))
-        print('diffweights = ' ,diffweights)
-        print('wfactor=',wfactor)
-        
-        return np.sum([self.length(self.history['pos'][trial])*\
-                       (10**(self.history['weight'][trial]-np.log10(wfactor)-self.maxWeights[0])) for trial in range(self.n)])
-        
-        # return np.average([self.length(self.history['pos'][trial]) for trial in range(self.n)], \
-        #                   weights=[self.history['weight'][trial] for trial in range(self.n)])
+        logweights = self.weights[N]
+        trials = len(self.weights[N]) 
+        positions = [pos[:N] for pos in self.history['pos'] if pos.shape[0] >= N]
+        lengths = [self.length(pos) for pos in positions]
+        weights = np.power(10, [w-np.log10(trials)-self.Z[N] for w in logweights])
+
+        # logweights = np.sort(self.history['weight'])[::-1]
+        # print('Weights = ', logweights)
+
+        # diffweights = abs(logweights-logweights[0])
+        # k=0
+        # while diffweights[k] < 100 and k < self.n-1:
+        #     k+=1
+        # print('k=',k)
+        # #Weight factor: factor that multiplies w_max to approximate the w_i sum
+        # wfactor = 1+np.sum(1/(10**diffweights[weight]) for weight in range(1,k))
+        # print('diffweights = ', diffweights)
+        # print('wfactor=', wfactor)
+
+        # return np.sum([self.length(self.history['pos'][trial])*\
+        #                (10**(self.history['weight'][trial]-np.log10(wfactor)-logweights[0])) for trial in range(self.n)])
+
+        return np.average(lengths, weights=weights)
 
     # def estimate_Z(self, trials):
     #     '''
