@@ -239,9 +239,9 @@ class MonteCarlo(LatticePolymer):
         c_m = kwargs.get('c_m', 1)   # lower threshold
         start = 3                    # pruning/enriching is only applied after some trials
         self.trial = 0
-
-        while self.trial < self.n:
-            print('Simulating polymer %d:' % self.trial)
+        self.desired_trials = 0
+        while self.desired_trials < self.n:
+            print('Simulating polymer %d/%d:' % (self.desired_trials, self.trial))
             if self.trial < start or not self.perm:
                 self.gen_walk(perm = False)
                 
@@ -266,6 +266,8 @@ class MonteCarlo(LatticePolymer):
             self.history['pos'].append(self.pos) 
             # if not self.clones:
             self.trial += 1
+            if self.pos.shape[0] == self.N:
+                self.desired_trials += 1
 
     def compute_re(self, N):
         '''
