@@ -33,7 +33,7 @@ class LatticePolymer:
         if self.constraint not in ['force', 'length']:
             raise NotImplementedError('Please select constraint in ["force", "length"].')
 
-    def gen_walk(self, start=1, perm=False, c_m=1):
+    def gen_walk(self, start=1, perm=False, c_m=1, momentum=False):
         '''
         Generates a chain of random steps to simulate the polymer. It starts at the center of the grid.
         Parameters
@@ -63,7 +63,7 @@ class LatticePolymer:
     
                 if perm and self.heatup >= self.N//50:
                     # Pruning/enriching
-                    self.control_weight(step, c_m)
+                    momentum = self.control_weight(step, c_m, momentum)
 
                 # Stoping the walk when it reaches a closed-loop of neighbors
                 if self.number_neighbors() == 0:
@@ -105,10 +105,12 @@ class LatticePolymer:
         x, y, z = choice(self.neighborhood(self.pos[-1]))
         return x, y, z
     
-    def control_weight(self, step, c_m):
+    def control_weight(self, step, c_m, momentum):
         '''
         This function applies the pruning/enriching algorithm to the Rosenbluth sampling.
         '''
+        if momentum:
+            c_m /= 10
         # PERM parameters
         c_p = 30*c_m
         # Current estimator of partition function
@@ -121,6 +123,7 @@ class LatticePolymer:
                 print('%sPolymer killed!%s' % (Fore.RED, Style.RESET_ALL))
                 # del self.weights[step][-1]
                 self.failed += 1
+                print(self.weight, W_m)
                 raise BreakException()
             else:
                 print('%sPolymer survived!%s' % (Fore.GREEN, Style.RESET_ALL))
@@ -138,7 +141,9 @@ class LatticePolymer:
             self.clones.append(self.checkpoint())
             print('%sPolymer has been cloned!%s' % (Fore.CYAN, Style.RESET_ALL))
             self.heatup = 0
-    
+            momentum = False
+        return momentum
+
     def checkpoint(self):
         '''
         This function saves the key properties of a polymer at any step of its growth.
@@ -242,9 +247,11 @@ class MonteCarlo(LatticePolymer):
         self.desired_trials = 0
         while self.desired_trials < self.n:
             print('Simulating polymer %d/%d:' % (self.desired_trials, self.trial))
+            cloning_freeze = 0
+            momentum = False
+
             if self.trial < start or not self.perm:
                 self.gen_walk(perm = False)
-                
             else:
                 # Cheking if a clone has been generated for this trial
                 if self.clones: # and self.history[trial-1].status == 'killed':
@@ -257,18 +264,25 @@ class MonteCarlo(LatticePolymer):
                     self.gen_walk(m, perm = True, c_m = c_m)        # Processing polymer growth on top of the clone
 
                     self.clones.remove(clone)
-
+                    cloning_freeze = 0
+                    momentum = False
                 # Else generating polymer from scratch
                 else:    
-                    self.gen_walk(perm=True, c_m=c_m)
+                    if cloning_freeze >= self.n//50:
+                        print('%sApplying momentum%s' % (Fore.YELLOW, Style.RESET_ALL))
+                        momentum = True
 
+                    self.gen_walk(perm=True, c_m=c_m, momentum=momentum)
+                    cloning_freeze += 1
             self.history['weight'].append(self.weight)
             self.history['pos'].append(self.pos) 
             # if not self.clones:
             self.trial += 1
             if self.pos.shape[0] == self.N:
                 self.desired_trials += 1
-
+            # for s in range(40, 51):
+            #     print(self.Z[s])
+                
     def compute_re(self, N):
         '''
         Computes the observable squared norm of a polymer at a given number of monomers.
