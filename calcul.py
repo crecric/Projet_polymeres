@@ -54,7 +54,6 @@ class LatticePolymer:
                 # The weight has to be balanced in accordance.
                 self.weight = np.log10(np.exp(-self.beta_eps))
         
-        self.status = 'survive'
         self.heatup = 0
         # Looping on the walk
         try:
@@ -62,14 +61,14 @@ class LatticePolymer:
                 self.update_weight(step)
                 self.heatup+=1
     
-                if perm and self.heatup >= self.N//50 and step <= int(0.9*self.N):
+                if perm and self.heatup >= self.N//50:
                     # Pruning/enriching
                     self.control_weight(step, c_m)
 
                 # Stoping the walk when it reaches a closed-loop of neighbors
                 if self.number_neighbors() == 0:
                     self.failed += 1
-                    self.status = 'killed'
+                    # del self.weights[step][-1]
                     break
 
                 # Generating a new direction
@@ -111,7 +110,7 @@ class LatticePolymer:
         This function applies the pruning/enriching algorithm to the Rosenbluth sampling.
         '''
         # PERM parameters
-        c_p = 10*c_m
+        c_p = 30*c_m
         # Current estimator of partition function
         W_m = np.log10(c_m)+self.Z[step]
         W_p = np.log10(c_p)+self.Z[step]
@@ -120,14 +119,22 @@ class LatticePolymer:
         if self.weight < W_m:
             if uniform(0, 1) < 0.5:
                 print('%sPolymer killed!%s' % (Fore.RED, Style.RESET_ALL))
-                self.status = 'killed'
+                # del self.weights[step][-1]
                 self.failed += 1
                 raise BreakException()
             else:
                 print('%sPolymer survived!%s' % (Fore.GREEN, Style.RESET_ALL))
                 self.weight += np.log10(2)
-        elif self.weight > W_p:
+                # self.weights[step][-1] += np.log10(2)
+                # for s in range(1, step+1):
+                #     self.weights[s][-1] += np.log10(2)
+
+        elif self.weight > W_p and step <= int(0.9*self.N):
             self.weight -= np.log10(2)
+            # self.weights[step][-1] -= np.log10(2)
+            # for s in range(1, step+1):
+            #     # self.weights[s] = [w-np.log10(2) for w in self.weights[s]]
+            #     self.weights[s].append(self.weights[s][-1])
             self.clones.append(self.checkpoint())
             print('%sPolymer has been cloned!%s' % (Fore.CYAN, Style.RESET_ALL))
             self.heatup = 0
@@ -244,6 +251,9 @@ class MonteCarlo(LatticePolymer):
                     clone = self.clones[-1]
                     m = len(clone['pos'])                           # Number of monomers already present in present polymer
                     self.reset(clone['weight'], clone['pos'])
+                    # for s in range(1, m+1):
+                    #     self.weights[s][-1] -= np.log10(2)
+                    #     self.weights[s].append(self.weights[s][-1])
                     self.gen_walk(m, perm = True, c_m = c_m)        # Processing polymer growth on top of the clone
 
                     self.clones.remove(clone)
@@ -252,9 +262,9 @@ class MonteCarlo(LatticePolymer):
                 else:    
                     self.gen_walk(perm=True, c_m=c_m)
 
-            # if self.status == 'survive':
             self.history['weight'].append(self.weight)
             self.history['pos'].append(self.pos) 
+            # if not self.clones:
             self.trial += 1
 
     def compute_re(self, N):
@@ -266,7 +276,7 @@ class MonteCarlo(LatticePolymer):
         positions = [pos[:N] for pos in self.history['pos'] if pos.shape[0] >= N]
         lengths = [self.length(pos) for pos in positions]
         weights = np.power(10, [w-np.log10(trials)-self.Z[N] for w in logweights])
-
+        print(trials)
         return np.average(lengths, weights=weights)
 
 class BreakException(Exception):
