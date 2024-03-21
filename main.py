@@ -5,17 +5,19 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 # Params
-N = 1000         # Number of monomers
+N = 3000         # Number of monomers
 beta_eps = -0  # beta*eps
-n = 50              # Number of polymers
+n = 1000              # Number of polymers
 # Generating a group of polymers with Rosenbluth method
 mcgroup = MonteCarloFactory(n=n, N=N, beta_eps = beta_eps)
-mcgroup.rosenbluth(perm=True, c_m=0.2, relaxation=300)
+mcgroup.rosenbluth(perm=True, c_m=0.0001, relaxation=5000000)
 # print(mcgroup.history['origin'])
 # print('Cloning in average every %f steps' % np.mean(mcgroup.c))
 # print('Pruning in average every %f steps' % np.mean(mcgroup.k))
 
-# groupPos = np.array(mcgroup.history['pos'][0])
+
+positions = [pos[:N] for i, pos in enumerate(mcgroup.history['pos']) if pos.shape[0] >= N and mcgroup.history['origin'][i] < N]
+groupPos = np.array(mcgroup.history['pos'][0])
 # posi = [pos[:N] for pos in mcgroup.history['pos'] if pos.shape[0] >= N]
 # print(len(posi), len(mcgroup.weights[N-1]))
 # for i in range(1,n):
@@ -40,6 +42,8 @@ for k in ks:
 plt.plot(ks, y, 'bo-')
 plt.plot(x, r(x), 'r-')
 plt.savefig('r(L).jpg', dpi=300)
+plt.xlabel('Number of monomers')
+plt.ylabel('R_e^2')
 plt.show()
 # print("Z :", mcgroup.Z)
 
