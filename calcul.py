@@ -3,7 +3,7 @@ from random import choice, uniform
 from copy import deepcopy as copy
 from tqdm import tqdm
 from colorama import Fore, Style
-from bisect import insort
+import pickle 
 
 class LatticePolymer:
     def __init__(self, N, constraint='force', beta_eps=0):
@@ -67,7 +67,6 @@ class LatticePolymer:
             for step in tqdm(range(start, self.N)):
                 # Stoping the walk when it reaches a closed-loop of neighbors
                 if self.number_neighbors() == 0:
-                    self.failed += 1
                     # del self.weights[step][-1]
                     break
 
@@ -141,7 +140,6 @@ class LatticePolymer:
             if uniform(0, 1) < 0.5:
                 print('%sPolymer has been KILLED!%s' % (Fore.RED, Style.RESET_ALL))
                 # del self.weights[step][-1]
-                self.failed += 1
                 raise BreakException()
             else:
                 print('%sPolymer has SURVIVED!%s' % (Fore.GREEN, Style.RESET_ALL))
@@ -224,20 +222,28 @@ class LatticePolymer:
         neighbors = [[(x+1), y, z], [(x-1), y, z], [x, (y+1), z], [x, (y-1), z], [x, y, (z+1)], [x, y, (z-1)]]
         return neighbors
 
-
+def MonteCarloFactory(load=None, *args, **kwargs):
+    '''
+    This function serves as a factory to load or initiate a new MonteCarlo instance.
+    '''
+    if load:
+        with open(load, "rb") as f:
+            return pickle.load(f)
+    else:
+        return MonteCarlo(*args, **kwargs)
+    
 class MonteCarlo(LatticePolymer):
     '''
     Generates collection of polymers.
     Returns thermodynamic observables.
     '''
-    def __init__(self, n=1, N=100, constraint='force', beta_eps=0):
+    def __init__(self, n=1, N=100, constraint='force', beta_eps=0, load=''):
         '''
         Parameters
         ----------
         n : int
           Number of monte carlo steps (number of generated polymers)
         '''
-        self.failed = 0
         self.n = n
         LatticePolymer.__init__(self, N, constraint, beta_eps)
         self.weights = [[] for _ in range(self.N)]
@@ -246,7 +252,7 @@ class MonteCarlo(LatticePolymer):
         self.clones = []
         # self.clones will eventually take the form [clone0_properties, clone1_properties, ...]
 
-    def rosenbluth(self, perm=False, **kwargs):
+    def rosenbluth(self, perm=False, save=None, **kwargs):
         '''
         Fills the history with the polymers simulated by a random walk with the normal Rosenbluth method.
         Parameters
@@ -303,7 +309,11 @@ class MonteCarlo(LatticePolymer):
             self.trial += 1
             if self.pos.shape[0] == self.N:
                 self.desired_trials += 1
-                
+        
+        # Saving
+        if save != None:
+            self.save(save)
+
     def compute_observable(self, obs, N):
         '''
         Computes an observable average at a given number of monomers.
@@ -315,6 +325,10 @@ class MonteCarlo(LatticePolymer):
         observables = [obs(pos) for pos in positions]
         weights = np.power(10, [w-np.log10(trials)-self.Z[N-1] for w in logweights])
         return np.average(observables, weights=weights)
+
+    def save(self, file):
+        with open(file, "wb") as f:
+            pickle.dump(self, f)
 
 class BreakException(Exception):
     pass

@@ -1,5 +1,5 @@
 import numpy as np
-from calcul import LatticePolymer, MonteCarlo
+from calcul import LatticePolymer, MonteCarloFactory, MonteCarlo
 import visualisation
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 # Params
 N = 1000         # Number of monomers
 beta_eps = -0  # beta*eps
-n = 5000              # Number of polymers
+n = 50              # Number of polymers
 # Generating a group of polymers with Rosenbluth method
-mcgroup = MonteCarlo(n, N, beta_eps = beta_eps)
+mcgroup = MonteCarloFactory(n=n, N=N, beta_eps = beta_eps)
 mcgroup.rosenbluth(perm=True, c_m=0.2, relaxation=300)
 # print(mcgroup.history['origin'])
 # print('Cloning in average every %f steps' % np.mean(mcgroup.c))
