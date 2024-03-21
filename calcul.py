@@ -33,6 +33,8 @@ class LatticePolymer:
         if self.constraint not in ['force', 'length']:
             raise NotImplementedError('Please select constraint in ["force", "length"].')
 
+        self.n_c = 0
+        self.n_p = 0
     def gen_walk(self, start=1, perm=False, c_m=0.2, c_p=2):
         '''
         Generates a chain of random steps to simulate the polymer. It starts at the center of the grid.
@@ -58,9 +60,9 @@ class LatticePolymer:
         heatup_thres = max(10, self.N // 500)
         if self.tours.count(self.tour) >= self.relaxation:
             print('%sRelaxing PERM...%s' % (Fore.YELLOW, Style.RESET_ALL))
-        # self.c0 = len(self.clones)
-        # self.k_ = 0
-        # self.c_ = 0
+        self.c0 = len(self.clones)
+        self.k_ = 0
+        self.c_ = 0
 
         # Looping on the walk
         try:
@@ -90,9 +92,9 @@ class LatticePolymer:
                     # Pruning/enriching
                     self.control_weight(step, c_m, c_p)
                     
-                # if len(self.clones) == self.c0:
-                #     self.c_ += 1
-                # self.k_ += 1
+                if len(self.clones) == self.c0:
+                    self.c_ += 1
+                self.k_ += 1
                     
         # If control_weight prematuraly kills a polymer
         except BreakException:
@@ -135,8 +137,14 @@ class LatticePolymer:
         self.heatup=0 
         # Pruning
         if self.weight < W_m:
-            # self.k.append(self.k_)
-            # self.k_ = 0
+            self.n_p += 1
+            # print(W_m)
+            # print(self.weights[step][-1])
+            # print(self.weights[step][-2])
+            self.k.append(self.k_)
+            self.k_ = 0
+            # print(self.zfactor)
+            #print(np.power(10, self.y)) 
             if uniform(0, 1) < 0.5:
                 print('%sPolymer has been KILLED!%s' % (Fore.RED, Style.RESET_ALL))
                 # del self.weights[step][-1]
@@ -149,6 +157,7 @@ class LatticePolymer:
                 #     self.weights[s][-1] += np.log10(2)
 
         elif self.weight > W_p and step != self.N-1: # and step <= int(0.95*self.N):
+            self.n_c += 1
             self.weight -= np.log10(2)
             # self.weights[step][-1] -= np.log10(2)
             # for s in range(1, step+1):
@@ -156,8 +165,8 @@ class LatticePolymer:
             #     self.weights[s].append(self.weights[s][-1])
             self.clones.append(self.checkpoint())
             print('%sPolymer has been CLONED!%s' % (Fore.MAGENTA, Style.RESET_ALL))
-            # self.c.append(self.c_)
-            # self.c0 = len(self.clones)
+            self.c.append(self.c_)
+            self.c0 = len(self.clones)
     
     def checkpoint(self):
         '''
@@ -190,7 +199,12 @@ class LatticePolymer:
             w_max = np.array(self.weights[step]).max()
             y = [x-w_max for x in self.weights[step]]
 
-            zfactor = np.sum(np.power(10, y)) 
+            self.zfactor = sum(np.power(10, self.y))
+            # print(self.zfactor)
+            # if self.zfactor<1:
+            #     for k in self.y:
+            #         print('sfdgfbvkl sdcvksdaBCUVBSDCVBSDHCVBSDHUVBSDVBSHDBVHUSDVBSUDVBSDV')
+            #         print(k)
             trials = len(self.weights[step])
             self.Z[step] = np.log10(1/(trials)) + np.log10(zfactor) + w_max
 
@@ -273,8 +287,8 @@ class MonteCarlo(LatticePolymer):
         # self.cloning_freeze = 0
         self.tour = 0
         self.tours = []
-        # self.c = []
-        # self.k = []
+        self.c = []
+        self.k = []
 
         while self.desired_trials < self.n:
             print('Simulating Polymer %d / Trial %d / Tour %d' % (self.desired_trials, self.trial, self.tour))
