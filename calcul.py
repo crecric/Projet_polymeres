@@ -55,32 +55,23 @@ class LatticePolymer:
                 self.weight = np.log10(np.exp(-self.beta_eps))
         
         self.heatup = 0
-        self.max_heatup = self.N //50
-        if self.tours.count(self.tour) >= max(100, self.n // 10):
-            print('%sRelaxation...%s' % (Fore.YELLOW, Style.RESET_ALL))
+        heatup_thres = max(10, self.N // 500)
+        if self.tours.count(self.tour) >= self.relaxation:
+            print('%sRelaxing PERM...%s' % (Fore.YELLOW, Style.RESET_ALL))
+        # self.c0 = len(self.clones)
+        # self.k_ = 0
+        # self.c_ = 0
+
         # Looping on the walk
         try:
             for step in tqdm(range(start, self.N)):
-                self.update_weight(step)
-                self.heatup+=1
-
-                if self.cloning_freeze >= 40 and self.a != None:
-                        self.max_heatup += self.N//50
-                        self.a = input('%sPress SPACE to increase PERM cooldown to %d steps%s' % (Fore.CYAN, self.max_heatup, Style.RESET_ALL))
-                        self.cloning_freeze = 0
-
-                if perm and self.heatup >= self.max_heatup:
-                        # input('%sAdding FORCING to polymer.%s' % (Fore.YELLOW, Style.RESET_ALL))
-                        # c_m /= 10
-                    # Pruning/enriching
-                    self.control_weight(step, c_m, c_p)
-
                 # Stoping the walk when it reaches a closed-loop of neighbors
                 if self.number_neighbors() == 0:
                     self.failed += 1
                     # del self.weights[step][-1]
                     break
 
+                self.update_weight(step)
                 # Generating a new direction
                 x, y, z = self.random_step()
                 while [x, y, z] in self.pos:
@@ -88,7 +79,22 @@ class LatticePolymer:
                     x, y, z = self.random_step()
 
                 self.pos.append([x,y,z])
-
+            
+                self.heatup+=1
+                # if start == 1 and not self.clones:
+                #     heatup_thres = self.start_heatup
+                # else:
+                #     heatup_thres = max(5, self.N//500)
+                if perm and self.heatup >= heatup_thres:
+                        # input('%sAdding FORCING to polymer.%s' % (Fore.YELLOW, Style.RESET_ALL))
+                        # c_m /= 10
+                    # Pruning/enriching
+                    self.control_weight(step, c_m, c_p)
+                    
+                # if len(self.clones) == self.c0:
+                #     self.c_ += 1
+                # self.k_ += 1
+                    
         # If control_weight prematuraly kills a polymer
         except BreakException:
             pass
@@ -123,17 +129,19 @@ class LatticePolymer:
         W_m = np.log10(c_m)+self.Z[step]
         W_p = np.log10(c_p)+self.Z[step]
 
-        if self.tours.count(self.tour) >= max(100, self.n // 10):
+        if self.tours.count(self.tour) >= self.relaxation:
             W_m = 0
             W_p = 10**(10000)
 
+        self.heatup=0 
         # Pruning
         if self.weight < W_m:
+            # self.k.append(self.k_)
+            # self.k_ = 0
             if uniform(0, 1) < 0.5:
                 print('%sPolymer has been KILLED!%s' % (Fore.RED, Style.RESET_ALL))
                 # del self.weights[step][-1]
                 self.failed += 1
-                print(self.weight, W_m, W_p)
                 raise BreakException()
             else:
                 print('%sPolymer has SURVIVED!%s' % (Fore.GREEN, Style.RESET_ALL))
@@ -142,7 +150,7 @@ class LatticePolymer:
                 # for s in range(1, step+1):
                 #     self.weights[s][-1] += np.log10(2)
 
-        elif self.weight > W_p and step <= int(0.9*self.N):
+        elif self.weight > W_p and step != self.N-1: # and step <= int(0.95*self.N):
             self.weight -= np.log10(2)
             # self.weights[step][-1] -= np.log10(2)
             # for s in range(1, step+1):
@@ -150,8 +158,9 @@ class LatticePolymer:
             #     self.weights[s].append(self.weights[s][-1])
             self.clones.append(self.checkpoint())
             print('%sPolymer has been CLONED!%s' % (Fore.MAGENTA, Style.RESET_ALL))
-            self.heatup = 0
-
+            # self.c.append(self.c_)
+            # self.c0 = len(self.clones)
+    
     def checkpoint(self):
         '''
         This function saves the key properties of a polymer at any step of its growth.
@@ -233,7 +242,7 @@ class MonteCarlo(LatticePolymer):
         LatticePolymer.__init__(self, N, constraint, beta_eps)
         self.weights = [[] for _ in range(self.N)]
         self.Z = np.zeros(shape=self.N)
-        self.history = {'weight': [], 'pos': []}
+        self.history = {'weight': [], 'pos': [], 'origin': []}
         self.clones = []
         # self.clones will eventually take the form [clone0_properties, clone1_properties, ...]
 
@@ -247,40 +256,46 @@ class MonteCarlo(LatticePolymer):
         c_m : float
             Pruning strength (as in lower threshold = c_m * current estimator of Z)
         '''
-        self.a = 'test'
         self.perm = perm
         c_m = kwargs.get('c_m', 0.2)    # lower threshold
         c_p = kwargs.get('c_p', 10*c_m)
+        self.relaxation = kwargs.get('relaxation', max(250, self.n//5))
         start = 3                       # pruning/enriching is only applied after some trials
-        self.trial = 0
+        self.trial = 0                  
         self.desired_trials = 0
-        self.cloning_freeze = 0
+        # self.start_heatup = max(5, self.N//500)
+        # self.cloning_freeze = 0
         self.tour = 0
         self.tours = []
+        # self.c = []
+        # self.k = []
+
         while self.desired_trials < self.n:
             print('Simulating Polymer %d / Trial %d / Tour %d' % (self.desired_trials, self.trial, self.tour))
+            self.origin = 0
             if self.trial < start or not self.perm:
                 self.gen_walk(perm = False)
             else:
                 # Cheking if a clone has been generated for this trial
-                if self.clones: # and self.history[trial-1].status == 'killed':
+                if self.clones:
                     clone = self.clones[-1]
-                    m = len(clone['pos'])                           # Number of monomers already present in present polymer
+                    m = len(clone['pos'])                                # Number of monomers already present in present polymer
+                    self.origin = m
                     self.reset(clone['weight'], clone['pos'])
-                    # for s in range(1, m+1):
-                    #     self.weights[s][-1] -= np.log10(2)
-                    #     self.weights[s].append(self.weights[s][-1])
                     self.gen_walk(m, perm=True, c_m=c_m, c_p=c_p)        # Processing polymer growth on top of the clone
-
                     self.clones.remove(clone)
-                    self.cloning_freeze = 0
+                    # self.cloning_freeze = 0
                 # Else generating polymer from scratch
                 else:    
                     self.gen_walk(perm=True, c_m=c_m, c_p=c_p)
-                    self.cloning_freeze += 1
+                    # self.cloning_freeze += 1
 
             self.history['weight'].append(self.weight)
             self.history['pos'].append(self.pos) 
+            self.history['origin'].append(self.origin)
+            # if self.cloning_freeze >= 40:
+            #     self.start_heatup += self.N//500
+            #     input('%sPress SPACE to increase PERM cooldown to %d steps%s' % (Fore.CYAN, self.start_heatup, Style.RESET_ALL))
 
             if not self.clones:
                 self.tour += 1
@@ -288,19 +303,17 @@ class MonteCarlo(LatticePolymer):
             self.trial += 1
             if self.pos.shape[0] == self.N:
                 self.desired_trials += 1
-            # for s in range(40, 51):
-            #     print(self.Z[s])
                 
     def compute_re(self, N):
         '''
         Computes the observable squared norm of a polymer at a given number of monomers.
         '''
-        logweights = self.weights[N]
-        trials = len(self.weights[N]) 
-        positions = [pos[:N] for pos in self.history['pos'] if pos.shape[0] >= N]
+        logweights = self.weights[N-1]
+        trials = len(logweights)
+        positions = [pos[:N] for i, pos in enumerate(self.history['pos']) if pos.shape[0] >= N and self.history['origin'][i] < N]
+
         lengths = [self.length(pos) for pos in positions]
-        weights = np.power(10, [w-np.log10(trials)-self.Z[N] for w in logweights])
-        print(trials)
+        weights = np.power(10, [w-np.log10(trials)-self.Z[N-1] for w in logweights])
         return np.average(lengths, weights=weights)
 
 class BreakException(Exception):

@@ -7,10 +7,14 @@ import matplotlib.pyplot as plt
 # Params
 N = 1000         # Number of monomers
 beta_eps = -0  # beta*eps
-n = 500              # Number of polymers
+n = 5000              # Number of polymers
 # Generating a group of polymers with Rosenbluth method
 mcgroup = MonteCarlo(n, N, beta_eps = beta_eps)
-mcgroup.rosenbluth(perm=True, c_m=0.2)
+mcgroup.rosenbluth(perm=True, c_m=0.2, relaxation=300)
+# print(mcgroup.history['origin'])
+# print('Cloning in average every %f steps' % np.mean(mcgroup.c))
+# print('Pruning in average every %f steps' % np.mean(mcgroup.k))
+
 # groupPos = np.array(mcgroup.history['pos'][0])
 # posi = [pos[:N] for pos in mcgroup.history['pos'] if pos.shape[0] >= N]
 # print(len(posi), len(mcgroup.weights[N-1]))
@@ -19,22 +23,24 @@ mcgroup.rosenbluth(perm=True, c_m=0.2)
 # groupPos = np.array(groupPos).T
 # groupweight = np.array(mcgroup.history['weight'])
 # print(groupweight)
+
 def r(L):
      nu = 3/5
      return L**(2*nu)
-ks = [N]
-# x = np.linspace(80, 110, 100)
+ks = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1]
+ks = [int(N*k) for k in ks]
+x = np.linspace(ks[0], ks[-1], 100)
 y = []
 for k in ks:
-     t = mcgroup.compute_re(k-1)
+     t = mcgroup.compute_re(k)
      y.append(t)
-     print("re(%d):" % k, mcgroup.compute_re(k-1))
+     print("re(%d):" % k, t)
      print('r_theo(%d):' % k, r(k-1))
 
-# plt.plot(ks, y, 'bo-')
-# plt.plot(x, r(x), 'r-')
-# plt.show()
-# plt.savefig('r(L).jpg', dpi=300)
+plt.plot(ks, y, 'bo-')
+plt.plot(x, r(x), 'r-')
+plt.savefig('r(L).jpg', dpi=300)
+plt.show()
 # print("Z :", mcgroup.Z)
 
 # Generating polymer
