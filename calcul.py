@@ -199,14 +199,14 @@ class LatticePolymer:
             w_max = np.array(self.weights[step]).max()
             y = [x-w_max for x in self.weights[step]]
 
-            self.zfactor = sum(np.power(10, self.y))
+            self.zfactor = np.sum(np.power(10, self.y))
             # print(self.zfactor)
             # if self.zfactor<1:
             #     for k in self.y:
             #         print('sfdgfbvkl sdcvksdaBCUVBSDCVBSDHCVBSDHUVBSDVBSHDBVHUSDVBSUDVBSDV')
             #         print(k)
             trials = len(self.weights[step])
-            self.Z[step] = np.log10(1/(trials)) + np.log10(zfactor) + w_max
+            self.Z[step] = np.log10(1/(trials)) + np.log10(self.zfactor) + w_max
 
         except OverflowError:
             print('%sOVERFLOWERROR passed%s' % (Fore.RED, Style.RESET_ALL))
