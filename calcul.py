@@ -304,17 +304,17 @@ class MonteCarlo(LatticePolymer):
             if self.pos.shape[0] == self.N:
                 self.desired_trials += 1
                 
-    def compute_re(self, N):
+    def compute_observable(self, obs, N):
         '''
-        Computes the observable squared norm of a polymer at a given number of monomers.
+        Computes an observable average at a given number of monomers.
         '''
         logweights = self.weights[N-1]
         trials = len(logweights)
         positions = [pos[:N] for i, pos in enumerate(self.history['pos']) if pos.shape[0] >= N and self.history['origin'][i] < N]
 
-        lengths = [self.length(pos) for pos in positions]
+        observables = [obs(pos) for pos in positions]
         weights = np.power(10, [w-np.log10(trials)-self.Z[N-1] for w in logweights])
-        return np.average(lengths, weights=weights)
+        return np.average(observables, weights=weights)
 
 class BreakException(Exception):
     pass

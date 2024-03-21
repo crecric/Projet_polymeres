@@ -32,7 +32,7 @@ ks = [int(N*k) for k in ks]
 x = np.linspace(ks[0], ks[-1], 100)
 y = []
 for k in ks:
-     t = mcgroup.compute_re(k)
+     t = mcgroup.compute_observable(LatticePolymer.length, k)
      y.append(t)
      print("re(%d):" % k, t)
      print('r_theo(%d):' % k, r(k-1))
