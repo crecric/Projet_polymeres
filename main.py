@@ -5,26 +5,22 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 # Params
-N = 3000         # Number of monomers
+N = 500         # Number of monomers
 beta_eps = -0  # beta*eps
 n = 1000              # Number of polymers
 # Generating a group of polymers with Rosenbluth method
 mcgroup = MonteCarloFactory(n=n, N=N, beta_eps = beta_eps)
-mcgroup.rosenbluth(perm=True, c_m=0.0001, relaxation=5000000)
+mcgroup.rosenbluth(perm=True, c_m=0.25, relaxation=5000000)
 # print(mcgroup.history['origin'])
 # print('Cloning in average every %f steps' % np.mean(mcgroup.c))
 # print('Pruning in average every %f steps' % np.mean(mcgroup.k))
 
 
-positions = [pos[:N] for i, pos in enumerate(mcgroup.history['pos']) if pos.shape[0] >= N and mcgroup.history['origin'][i] < N]
-groupPos = np.array(mcgroup.history['pos'][0])
-# posi = [pos[:N] for pos in mcgroup.history['pos'] if pos.shape[0] >= N]
-# print(len(posi), len(mcgroup.weights[N-1]))
-# for i in range(1,n):
+
 #      groupPos = np.vstack((groupPos,mcgroup.history['pos'][i]))
-# groupPos = np.array(groupPos).T
-# groupweight = np.array(mcgroup.history['weight'])
-# print(groupweight)
+#groupPos = np.array(groupPos).T
+groupweight = np.array(mcgroup.history['weight'])
+print(groupweight)
 
 def r(L):
      nu = 3/5
@@ -59,4 +55,5 @@ plt.show()
 #visualisation.singPolyVisu3D(pos[0], pos[1], pos[2])
 
 # Visualisation of a group of polymers
-# visualisation.polyCloud3D(groupPos)
+visualisation.polyCloud3D(mcgroup,N-50,n)
+visualisation.polyCloud3D(mcgroup,N,n)

@@ -131,20 +131,25 @@ class LatticePolymer:
         if self.tours.count(self.tour) >= self.relaxation:
             W_m = 0
             W_p = 10**(10000)
-
+        # if self.weight<self.Z[step]:
+        #     print('Z=',self.Z[step])
+        #     print("W_M=", W_m)
+        #     print("Weight=", self.weight)
         self.heatup=0 
         # Pruning
         if self.weight < W_m:
             # print(W_m)
-            # print(self.weights[step][-1])
+            #print(self.weights[step])
             # print(self.weights[step][-2])
             # self.k.append(self.k_)
             # self.k_ = 0
-            print(self.zfactor)
-            #print(np.power(10, self.y)) 
+            
+            
+            
+            
             if uniform(0, 1) < 0.5:
                 print('%sPolymer has been KILLED!%s' % (Fore.RED, Style.RESET_ALL))
-                # del self.weights[step][-1]
+                #del self.weights[step][-1]
                 raise BreakException()
             else:
                 print('%sPolymer has SURVIVED!%s' % (Fore.GREEN, Style.RESET_ALL))
@@ -197,13 +202,8 @@ class LatticePolymer:
             
 
             self.zfactor = sum(np.power(10, self.y))
-            # print(self.zfactor)
-            if self.zfactor<1:
-                for k in self.y:
-                    print('sfdgfbvkl sdcvksdaBCUVBSDCVBSDHCVBSDHUVBSDVBSHDBVHUSDVBSUDVBSDV')
-                    print(k)
             trials = len(self.weights[step])
-            self.Z[step] = np.log10(1/(trials)) + np.log10(self.zfactor) + w_max
+            self.Z[step] = np.log10(self.zfactor) + w_max + np.log10(1/(trials))
 
         except OverflowError:
             print('%sOVERFLOWERROR passed%s' % (Fore.RED, Style.RESET_ALL))
@@ -275,9 +275,9 @@ class MonteCarlo(LatticePolymer):
         '''
         self.perm = perm
         c_m = kwargs.get('c_m', 0.2)    # lower threshold
-        c_p = kwargs.get('c_p', 500000*c_m)
+        c_p = kwargs.get('c_p', 20*c_m)
         self.relaxation = kwargs.get('relaxation', max(250, self.n//5))
-        start = 3                       # pruning/enriching is only applied after some trials
+        start = 10                       # pruning/enriching is only applied after some trials
         self.trial = 0                  
         self.desired_trials = 0
         # self.start_heatup = max(5, self.N//500)
@@ -335,6 +335,8 @@ class MonteCarlo(LatticePolymer):
 
         observables = [obs(pos) for pos in positions]
         weights = np.power(10, [w-np.log10(trials)-self.Z[N-1] for w in logweights])
+        print(trials)
+        print(len(positions))
         return np.average(observables, weights=weights)
 
     def save(self, file):
