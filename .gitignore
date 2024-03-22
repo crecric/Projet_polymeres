@@ -6,3 +6,4 @@ build/
 *.pyc
 test*
 *.jpg
+*.pkl
