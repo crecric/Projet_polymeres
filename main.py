@@ -5,20 +5,27 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 # Params
-N = 1000         # Number of monomers
+N = 2000         # Number of monomers
 beta_eps = -0  # beta*eps
-n = 500              # Number of polymers
+n = 10000              # Number of polymers
+poly_per_run = 100
+runs = 50
+c_m = 0.3
+c_p = 3
+
 # Generating a group of polymers with Rosenbluth method
 mcgroup = MonteCarloFactory(n=n, N=N, beta_eps = beta_eps)
-mcgroup.rosenbluth(perm=True, c_m=0.1, c_p=10, relaxation=5000000)
+mcgroup.multiple_PERM(runs=runs, poly_per_run=poly_per_run, c_m=c_m, c_p=c_p, \
+                      save='%druns_%dmonom_%dpoly_%.2f_%.2f.pkl' % (runs, N, poly_per_run, c_m, c_p))
+# mcgroup.rosenbluth(perm=True, c_m=c_m, c_p=c_p, relaxation=100000)
 # print(mcgroup.history['origin'])
-print('Cloning in average every %f steps' % np.mean(mcgroup.c))
-print('Pruning in average every %f steps' % np.mean(mcgroup.k))
-print('%f clones were generated' % mcgroup.n_c)
-print('%f polymers were pruned' % mcgroup.n_p)
+# print('Cloning in average every %f steps' % np.mean(mcgroup.c))
+# print('Pruning in average every %f steps' % np.mean(mcgroup.k))
+# print('%f clones were generated' % mcgroup.n_c)
+# print('%f polymers were pruned' % mcgroup.n_p)
 
-positions = [pos[:N] for i, pos in enumerate(mcgroup.history['pos']) if pos.shape[0] >= N and mcgroup.history['origin'][i] < N]
-groupPos = np.array(mcgroup.history['pos'][0])
+# positions = [pos[:N] for i, pos in enumerate(mcgroup.history['pos']) if pos.shape[0] >= N and mcgroup.history['origin'][i] < N]
+# groupPos = np.array(mcgroup.history['pos'][0])
 # posi = [pos[:N] for pos in mcgroup.history['pos'] if pos.shape[0] >= N]
 # print(len(posi), len(mcgroup.weights[N-1]))
 # for i in range(1,n):
@@ -33,16 +40,20 @@ def r(L):
 ks = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1]
 ks = [int(N*k) for k in ks]
 x = np.linspace(ks[0], ks[-1], 100)
-y = []
+ts = []
+es = []
+# mcgroup = MonteCarloFactory(load='%druns_%dmonom_%dpoly_%.2f_%.2f.pkl' % (runs, N, poly_per_run, c_m, c_p))
 for k in ks:
      t = mcgroup.compute_observable(LatticePolymer.length, k)
-     y.append(t)
-     print("re(%d):" % k, t)
-     print('r_theo(%d):' % k, r(k-1))
+     e = mcgroup.error(LatticePolymer.length, k)
+     ts.append(t)
+     es.append(e)
+     print("re(%d) = %f +/- %f" % (k, t, e))
+     print('r_theo(%d)=' % k, r(k-1))
 
-plt.plot(ks, y, 'bo-')
+plt.errorbar(ks, ts, yerr=es, fmt='bo-')
 plt.plot(x, r(x), 'r-')
-plt.savefig('r(L).jpg', dpi=300)
+plt.savefig('Re_%druns_%dmonom_%dpoly_%.2f_%.2f.jpg' % (runs, N, poly_per_run, c_m, c_p), dpi=300)
 plt.show()
 # print("Z :", mcgroup.Z)
 

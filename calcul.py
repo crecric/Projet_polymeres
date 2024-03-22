@@ -4,6 +4,7 @@ from copy import deepcopy as copy
 from tqdm import tqdm
 from colorama import Fore, Style
 import pickle 
+from itertools import zip_longest
 
 class LatticePolymer:
     def __init__(self, N, constraint='force', beta_eps=0):
@@ -35,6 +36,7 @@ class LatticePolymer:
 
         self.n_c = 0
         self.n_p = 0
+
     def gen_walk(self, start=1, perm=False, c_m=0.2, c_p=2):
         '''
         Generates a chain of random steps to simulate the polymer. It starts at the center of the grid.
@@ -58,8 +60,8 @@ class LatticePolymer:
         
         self.heatup = 0
         heatup_thres = max(10, self.N // 500)
-        if self.tours.count(self.tour) >= self.relaxation:
-            print('%sRelaxing PERM...%s' % (Fore.YELLOW, Style.RESET_ALL))
+        # if self.tours.count(self.tour) >= self.relaxation and self.origin <= int(0.2*self.N):
+        #     print('%sRelaxing PERM...%s' % (Fore.YELLOW, Style.RESET_ALL))
         self.c0 = len(self.clones)
         self.k_ = 0
         self.c_ = 0
@@ -86,7 +88,7 @@ class LatticePolymer:
                 #     heatup_thres = self.start_heatup
                 # else:
                 #     heatup_thres = max(5, self.N//500)
-                if perm and self.heatup >= heatup_thres:
+                if perm: # and self.heatup >= heatup_thres:
                         # input('%sAdding FORCING to polymer.%s' % (Fore.YELLOW, Style.RESET_ALL))
                         # c_m /= 10
                     # Pruning/enriching
@@ -130,9 +132,9 @@ class LatticePolymer:
         W_m = np.log10(c_m)+self.Z[step]
         W_p = np.log10(c_p)+self.Z[step]
 
-        if self.tours.count(self.tour) >= self.relaxation:
-            W_m = 0
-            W_p = 10**(10000)
+        # if self.tours.count(self.tour) >= self.relaxation and self.origin <= int(0.2*self.N):
+        #     W_m = 0
+        #     W_p = 10**(10000)
 
         self.heatup=0 
         # Pruning
@@ -193,24 +195,19 @@ class LatticePolymer:
             self.weight = 0
 
         # Calculation of Z (for Monte Carlo purposes)
-        try:
-            # Finding the max weight
-            self.weights[step].append(self.weight)
-            w_max = np.array(self.weights[step]).max()
-            y = [x-w_max for x in self.weights[step]]
+        # try:
+        # Finding the max weight
+        self.weights[step].append(self.weight)
+        w_max = np.array(self.weights[step]).max()
+        self.y = [x-w_max for x in self.weights[step]]
 
-            self.zfactor = np.sum(np.power(10, self.y))
-            # print(self.zfactor)
-            # if self.zfactor<1:
-            #     for k in self.y:
-            #         print('sfdgfbvkl sdcvksdaBCUVBSDCVBSDHCVBSDHUVBSDVBSHDBVHUSDVBSUDVBSDV')
-            #         print(k)
-            trials = len(self.weights[step])
-            self.Z[step] = np.log10(1/(trials)) + np.log10(self.zfactor) + w_max
+        self.zfactor = np.sum(np.power(10, self.y))
+        trials = len(self.weights[step])
+        self.Z[step] = np.log10(1/(trials)) + np.log10(self.zfactor) + w_max
 
-        except OverflowError:
-            print('%sOVERFLOWERROR passed%s' % (Fore.RED, Style.RESET_ALL))
-            pass
+        # except OverflowError:
+        #     print('%sOVERFLOWERROR passed%s' % (Fore.RED, Style.RESET_ALL))
+        #     pass
 
     @staticmethod
     def length(pos):
@@ -263,8 +260,6 @@ class MonteCarlo(LatticePolymer):
         self.weights = [[] for _ in range(self.N)]
         self.Z = np.zeros(shape=self.N)
         self.history = {'weight': [], 'pos': [], 'origin': []}
-        self.clones = []
-        # self.clones will eventually take the form [clone0_properties, clone1_properties, ...]
 
     def rosenbluth(self, perm=False, save=None, **kwargs):
         '''
@@ -276,15 +271,22 @@ class MonteCarlo(LatticePolymer):
         c_m : float
             Pruning strength (as in lower threshold = c_m * current estimator of Z)
         '''
+        # Run variables
+        self.clones = []
+        # self.clones will eventually take the form [clone0_properties, clone1_properties, ...]
+
+        # Run globals
         self.perm = perm
-        c_m = kwargs.get('c_m', 0.2)    # lower threshold
+        c_m = kwargs.get('c_m', 0.2)     # lower threshold
         c_p = kwargs.get('c_p', 10*c_m)
-        self.relaxation = kwargs.get('relaxation', max(250, self.n//5))
-        start = 3                       # pruning/enriching is only applied after some trials
+        # self.relaxation = kwargs.get('relaxation', max(250, self.n//5))
+        start = 10 # self.N//100                       # pruning/enriching is only applied after some trials
+
+        # Run iterators
         self.trial = 0                  
         self.desired_trials = 0
         # self.start_heatup = max(5, self.N//500)
-        # self.cloning_freeze = 0
+        self.cloning_freeze = 0
         self.tour = 0
         self.tours = []
         self.c = []
@@ -293,6 +295,8 @@ class MonteCarlo(LatticePolymer):
         while self.desired_trials < self.n:
             print('Simulating Polymer %d / Trial %d / Tour %d' % (self.desired_trials, self.trial, self.tour))
             self.origin = 0
+            if self.cloning_freeze >= 750:
+                break
             if self.trial < start or not self.perm:
                 self.gen_walk(perm = False)
             else:
@@ -304,11 +308,11 @@ class MonteCarlo(LatticePolymer):
                     self.reset(clone['weight'], clone['pos'])
                     self.gen_walk(m, perm=True, c_m=c_m, c_p=c_p)        # Processing polymer growth on top of the clone
                     self.clones.remove(clone)
-                    # self.cloning_freeze = 0
+                    self.cloning_freeze = 0
                 # Else generating polymer from scratch
                 else:    
                     self.gen_walk(perm=True, c_m=c_m, c_p=c_p)
-                    # self.cloning_freeze += 1
+                    self.cloning_freeze += 1
 
             self.history['weight'].append(self.weight)
             self.history['pos'].append(self.pos) 
@@ -328,11 +332,68 @@ class MonteCarlo(LatticePolymer):
         if save != None:
             self.save(save)
 
+    def multiple_PERM(self, runs=50, poly_per_run=100, c_m=(1/3), c_p=3, save=None):
+        '''
+        This function runs a collection of PERM simulations to achieve tour-decorrelation.
+        '''
+        self.n = poly_per_run
+        # Variables
+        # self.weights_stack = []
+        # self.history_stack = []
+
+        # Iterators
+        self.r = 1
+        self.all_tours = 0
+        self.all_trials = 0
+        self.all_desired_trials = 0
+
+        # Sequential decorrelated runs
+        while self.r <= runs:
+            print('%sStarting run %d/%d%s' % (Fore.YELLOW, self.r, runs, Style.RESET_ALL))
+            self.rosenbluth(perm=True, c_m=c_m, c_p=c_p, save=None)
+            # self.weights_stack.append([list(i) for i in zip_longest(*self.weights)])
+            # self.history_stack.append(self.history)
+
+            self.all_tours += self.tour
+            self.all_desired_trials += self.desired_trials
+            self.all_trials += self.trial
+            self.r += 1
+            print('%sSimulated so far %d polymers / %d trials / %d tours%s' % (Fore.YELLOW, self.all_desired_trials, \
+                                                                               self.all_trials, self.all_tours, Style.RESET_ALL))
+            
+        # Rebuilding stacked MC attributes
+
+        # all_origins = [x['origin'] for x in self.history_stack]
+        # all_positions = [x['pos'] for x in self.history_stack]
+
+        # self.history['origin'] = sum(all_origins, [])
+        # self.history['pos'] = sum(all_positions, [])
+        # # self.weights = list(np.concatenate(self.weights_stack).T)
+        # transposed_weights = sum(self.weights_stack, [])
+        # self.weights = [list(i) for i in zip_longest(*transposed_weights)]
+
+        # # Computing whole Z
+        # self.Z = np.zeros(shape=self.N)
+
+        # # Finding the max weight
+        # for step in range(1, self.N):
+        #     logweights = [x for x in self.weights[step] if x is not None]
+        #     w_max = np.array(logweights).max()
+        #     self.y = [x-w_max for x in logweights]
+
+        #     self.zfactor = np.sum(np.power(10, self.y))
+        #     trials = len(self.weights[step])
+        #     self.Z[step] = np.log10(1/(trials)) + np.log10(self.zfactor) + w_max
+
+        # Saving    
+        if save != None:
+            self.save(save)
+
     def compute_observable(self, obs, N):
         '''
         Computes an observable average at a given number of monomers.
         '''
-        logweights = self.weights[N-1]
+        logweights = [x for x in self.weights[N-1] if x is not None]
         trials = len(logweights)
         positions = [pos[:N] for i, pos in enumerate(self.history['pos']) if pos.shape[0] >= N and self.history['origin'][i] < N]
 
@@ -340,6 +401,34 @@ class MonteCarlo(LatticePolymer):
         weights = np.power(10, [w-np.log10(trials)-self.Z[N-1] for w in logweights])
         return np.average(observables, weights=weights)
 
+    def error(self, obs, N):
+        '''
+        Estimate the Monte Carlo error using approximate analytical formula and boostrapping
+        '''
+        # Approximate analytical formula
+        # err_a = np.sqrt((n/(n-1))*(np.sum([self.history[trial].weight**2*(self.history[trial].length()**2- np.sum([self.history[j].length() for j in range(self.n)]))**2) for trial in range(self.n)]/(w**2))
+
+        logweights = [x for x in self.weights[N-1] if x is not None]
+        trials = len(logweights)
+        positions = [pos[:N] for i, pos in enumerate(self.history['pos']) if pos.shape[0] >= N and self.history['origin'][i] < N]
+
+        observables = np.array([obs(pos) for pos in positions])
+        weights = np.power(10, [w-np.log10(trials)-self.Z[N-1] for w in logweights])
+
+        # Boostrapping
+        num_bootstrap_samples = trials//10
+    
+         # Table of zero
+        bootstrap_obs = np.zeros(num_bootstrap_samples)
+    
+        for i in range(num_bootstrap_samples):
+            bootstrap_indices = np.random.choice(trials, size=trials, replace=True)
+            bootstrap_obs[i] = np.average(observables[bootstrap_indices], weights=weights[bootstrap_indices])
+
+         # standard error 
+        error = np.std(bootstrap_obs)
+        return error
+    
     def save(self, file):
         with open(file, "wb") as f:
             pickle.dump(self, f)
