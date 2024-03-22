@@ -29,10 +29,10 @@ if arg not in ['sarw', 'isarw', 'bisaw']:
     raise NotImplementedError("Please provide a run type in ['sarw', 'isarw', 'bisaw']")
 
 # Params
-N = 100               # Number of monomers
+N = 2000               # Number of monomers
 n = 10000              # Number of polymers
-poly_per_run = 50
-runs = 5
+poly_per_run = 100
+runs = 100
 c_m = 0.3
 c_p = 3
 
