@@ -29,10 +29,10 @@ if arg not in ['sarw', 'isaw', 'bisaw']:
     raise NotImplementedError("Please provide a run type in ['sarw', 'isarw', 'bisaw']")
 
 # Params
-N = 2000               # Number of monomers
+N = 500               # Number of monomers
 n = 10000              # Number of polymers
-poly_per_run = 100
-runs = 50
+poly_per_run = 50
+runs = 5
 c_m = 0.3
 c_p = 3
 
@@ -105,11 +105,11 @@ elif arg == 'isaw':
 else:
     energy = 1.5
     force = [1, 1.45, 1.55, 1.6, 1.65, 1.70]
-    ks = np.linspace(1, N, num=50)
+    ks = np.linspace(2, N, num=50)
     ks = [int(k) for k in ks]
     fmts = ['r-', 'g.', 'c--', 'm-', 'y.', 'b-']
     for i, f in enumerate(force):
-        mcgroup = MonteCarloFactory(n=n, N=N, boltzmann_energy=energy, boltzmann_force=force)
+        mcgroup = MonteCarloFactory(n=n, N=N, boltzmann_energy=energy, boltzmann_force=f)
         mcgroup.multiple_PERM(runs=runs, poly_per_run=poly_per_run, c_m=c_m, c_p=c_p, \
                             save='%s_%.2fb_%druns_%dmonom_%dpoly_%.2f_%.2f.pkl' % \
                                 (arg, f, runs, N, poly_per_run, c_m, c_p))
@@ -119,6 +119,7 @@ else:
         mcgroup = MonteCarloFactory(load='%s_%.2fb_%druns_%dmonom_%dpoly_%.2f_%.2f.pkl' % \
                                 (arg, f, runs, N, poly_per_run, c_m, c_p))
         for j, k in enumerate(ks):
+            print('oui')
             t = mcgroup.compute_observable(LatticePolymer.extension, k)
             e = mcgroup.error(LatticePolymer.extension, k)
             ts[i,j] = t

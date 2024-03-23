@@ -1,5 +1,5 @@
 import numpy as np
-from random import choice, uniform
+from random import choice, choices, uniform
 from copy import deepcopy as copy
 from tqdm import tqdm
 from colorama import Fore, Style
@@ -123,9 +123,10 @@ class LatticePolymer:
             x, y, z = choice(self.neighborhood(self.pos[-1]))
         else:
             weights = [np.sqrt(self.b), 1/np.sqrt(self.b), 1, 1, 1, 1]
+            print(weights)
             s = np.sum(weights)
             weights = [w/s for w in weights]
-            x, y, z = choice(self.neighborhood(self.pos[-1]), weights=weights)
+            x, y, z = choices(self.neighborhood(self.pos[-1]), weights=weights)[0]
         return x, y, z
     
     def control_weight(self, step, c_m, c_p):
