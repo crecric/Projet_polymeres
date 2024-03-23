@@ -30,9 +30,9 @@ if arg not in ['sarw', 'isaw', 'bisaw']:
 
 # Params
 N = 1000               # Number of monomers
-n = 10000              # Number of polymers
-poly_per_run = 100
-runs = 10
+n = 100              # Number of polymers
+poly_per_run = 150
+runs = 100
 c_m = 0.3
 c_p = 3
 
@@ -43,7 +43,7 @@ if arg == 'sarw':
                         save='%s_%druns_%dmonom_%dpoly_%.2f_%.2f.pkl' % (arg, runs, N, poly_per_run, c_m, c_p))
     
     def r(L):
-        nu = 3/5
+        nu = 0.586
         return L**(2*nu)
     
     ks = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1]
@@ -119,7 +119,7 @@ else:
         mcgroup = MonteCarloFactory(load='%s_%.2fb_%druns_%dmonom_%dpoly_%.2f_%.2f.pkl' % \
                                 (arg, f, runs, N, poly_per_run, c_m, c_p))
         for j, k in enumerate(ks):
-            print('oui')
+           
             t = mcgroup.compute_observable(LatticePolymer.extension, k)
             e = mcgroup.error(LatticePolymer.extension, k)
             ts[i,j] = t
