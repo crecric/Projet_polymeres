@@ -1,21 +1,65 @@
 import numpy as np
-from calcul import LatticePolymer, MonteCarlo
+from calcul import LatticePolymer, MonteCarloFactory, MonteCarlo
 import visualisation
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 # Params
-N = 1000            # Number of monomers
-beta_eps = -0  # beta*eps
-n = 100              # Number of polymers
+N = 100         # Number of monomers
+energy = 1.3  # beta*eps
+# force = 1.5
+n = 10000              # Number of polymers
+poly_per_run = 100
+runs = 50
+c_m = 0.3
+c_p = 3
 
 # Generating a group of polymers with Rosenbluth method
-mcgroup = MonteCarlo(n, N)
-mcgroup.rosenbluth(perm=False)
-groupPos = np.array(mcgroup.history[0].pos)
-for i in range(1,n):
-    groupPos = np.vstack((groupPos,mcgroup.history[i].pos))
-groupPos = np.array(groupPos).T
+# mcgroup = MonteCarloFactory(n=n, N=N, boltzmann_energy=energy)
+# mcgroup.multiple_PERM(runs=runs, poly_per_run=poly_per_run, c_m=c_m, c_p=c_p, \
+#                       save='isaw_%s_runs_%dmonom_%dpoly_%.2f_%.2f.pkl' % (runs, N, poly_per_run, c_m, c_p))
+# mcgroup.rosenbluth(perm=True, c_m=c_m, c_p=c_p, relaxation=100000)
+# print(mcgroup.history['origin'])
+# print('Cloning in average every %f steps' % np.mean(mcgroup.c))
+# print('Pruning in average every %f steps' % np.mean(mcgroup.k))
+# print('%f clones were generated' % mcgroup.n_c)
+# print('%f polymers were pruned' % mcgroup.n_p)
 
+# positions = [pos[:N] for i, pos in enumerate(mcgroup.history['pos']) if pos.shape[0] >= N and mcgroup.history['origin'][i] < N]
+# groupPos = np.array(mcgroup.history['pos'][0])
+# posi = [pos[:N] for pos in mcgroup.history['pos'] if pos.shape[0] >= N]
+# print(len(posi), len(mcgroup.weights[N-1]))
+# for i in range(1,n):
+#      groupPos = np.vstack((groupPos,mcgroup.history['pos'][i]))
+#groupPos = np.array(groupPos).T
+groupweight = np.array(mcgroup.history['weight'])
+print(groupweight)
+
+def r(L):
+     nu = 3/5
+     return L**(2*nu)
+# ks = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1]
+# ks = [int(N*k) for k in ks]
+ks = np.logspace(1, 2, num=15)
+ks = [int(k) for k in ks]
+# x = np.linspace(ks[0], ks[-1], 100)
+ts = []
+es = []
+mcgroup = MonteCarloFactory(load='isaw_%s_runs_%dmonom_%dpoly_%.2f_%.2f.pkl' % (runs, N, poly_per_run, c_m, c_p))
+for k in ks:
+     t = mcgroup.compute_observable(LatticePolymer.length, k)
+     e = mcgroup.error(LatticePolymer.length, k)
+     ts.append(t/k)
+     es.append(e/k)
+     # print("re(%d) = %f +/- %f" % (k, t, e))
+     # print('r_theo(%d)=' % k, r(k-1))
+
+plt.errorbar(ks, ts, yerr=es, fmt='bo-')
+plt.xscale('log')
+# plt.plot(x, r(x), 'r-')
+plt.savefig('isaw_%druns_%dmonom_%dpoly_%.2f_%.2f.jpg' % (runs, N, poly_per_run, c_m, c_p), dpi=300)
+plt.show()
+# print("Z :", mcgroup.Z)
 
 # Generating polymer
 # polymer = LatticePolymer(N, constraint = "force", beta_eps=beta_eps)
@@ -29,5 +73,5 @@ groupPos = np.array(groupPos).T
 #visualisation.singPolyVisu3D(pos[0], pos[1], pos[2])
 
 # Visualisation of a group of polymers
-
-visualisation.polyCloud3D(groupPos)
+visualisation.polyCloud3D(mcgroup,N-50,n)
+visualisation.polyCloud3D(mcgroup,N,n)

@@ -5,3 +5,5 @@ build/
 *.egg-info/
 *.pyc
 test*
+*.jpg
+*.pkl
