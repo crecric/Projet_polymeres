@@ -29,10 +29,10 @@ if arg not in ['sarw', 'isaw', 'bisaw']:
     raise NotImplementedError("Please provide a run type in ['sarw', 'isarw', 'bisaw']")
 
 # Params
-N = 500               # Number of monomers
+N = 1000               # Number of monomers
 n = 10000              # Number of polymers
-poly_per_run = 50
-runs = 5
+poly_per_run = 100
+runs = 10
 c_m = 0.3
 c_p = 3
 
@@ -134,3 +134,7 @@ else:
     plt.xlabel(r'$N$')
     plt.savefig('X_%s_%druns_%dmonom_%dpoly_%.2f_%.2f.jpg' % (arg, runs, N, poly_per_run, c_m, c_p), dpi=300)
     plt.show()
+
+
+    #Heatmap
+    visualisation.polyCloud3D(mcgroup,N,n)
