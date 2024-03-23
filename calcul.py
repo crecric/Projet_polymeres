@@ -7,7 +7,7 @@ import pickle
 from itertools import zip_longest
 
 class LatticePolymer:
-    def __init__(self, N, constraint='force', beta_eps=0):
+    def __init__(self, N, boltzmann_energy=1, boltzmann_force=1):
         '''
         Initializes a polymer chain that is to be simulated by a self-avoiding 
         random walk. 
@@ -22,17 +22,19 @@ class LatticePolymer:
             strength of interacting energy compared to inverse temperature. 
             If beta_eps = 0 there is no closest-non-paired neighbor interaction.
         '''
-        # Setting Interaction 
-        self.beta_eps = beta_eps
-        if self.beta_eps == 0:
+        # Setting Interaction and constraints
+        self.q = boltzmann_energy
+        self.b = boltzmann_force
+        if self.q == 1:
             self.interacting = False
         else:
             self.interacting = True
-        
+        if self.b != 1:
+            self.forced = True
+        else:
+            self.forced = False
+
         self.N = N
-        self.constraint = constraint
-        if self.constraint not in ['force', 'length']:
-            raise NotImplementedError('Please select constraint in ["force", "length"].')
 
         self.n_c = 0
         self.n_p = 0
@@ -53,10 +55,10 @@ class LatticePolymer:
         if start == 1:
             self.pos = [[0, 0, 0]]
             self.weight = 0
-            if self.interacting:
-                # The first iteration will wrongly count -1 occupied neighboring sites (cf number_pairs)
-                # The weight has to be balanced in accordance.
-                self.weight = np.log10(np.exp(-self.beta_eps))
+            # if self.interacting:
+            #     # The first iteration will wrongly count -1 occupied neighboring sites (cf number_pairs)
+            #     # The weight has to be balanced in accordance.
+            #     self.weight = np.log10(self.q)
         
         self.heatup = 0
         heatup_thres = max(10, self.N // 500)
@@ -73,15 +75,8 @@ class LatticePolymer:
                 if self.number_neighbors() == 0:
                     # del self.weights[step][-1]
                     break
-
+                
                 self.update_weight(step)
-                # Generating a new direction
-                x, y, z = self.random_step()
-                while [x, y, z] in self.pos:
-                    # Generating new step if the step is already present in the history of steps
-                    x, y, z = self.random_step()
-
-                self.pos.append([x,y,z])
             
                 self.heatup+=1
                 # if start == 1 and not self.clones:
@@ -94,6 +89,9 @@ class LatticePolymer:
                     # Pruning/enriching
                     self.control_weight(step, c_m, c_p)
                     
+                if len(self.clones) == self.c0:
+                    self.c_ += 1
+                self.k_ += 1
                 if len(self.clones) == self.c0:
                     self.c_ += 1
                 self.k_ += 1
@@ -121,7 +119,13 @@ class LatticePolymer:
         '''
         This function generates a random step starting from last visited site.
         '''
-        x, y, z = choice(self.neighborhood(self.pos[-1]))
+        if not self.forced:
+            x, y, z = choice(self.neighborhood(self.pos[-1]))
+        else:
+            weights = [np.sqrt(self.b), 1/np.sqrt(self.b), 1, 1, 1, 1]
+            s = np.sum(weights)
+            weights = [w/s for w in weights]
+            x, y, z = choice(self.neighborhood(self.pos[-1]), weights=weights)
         return x, y, z
     
     def control_weight(self, step, c_m, c_p):
@@ -140,9 +144,13 @@ class LatticePolymer:
         # Pruning
         if self.weight < W_m:
             self.n_p += 1
+            self.n_p += 1
             # print(W_m)
             # print(self.weights[step][-1])
             # print(self.weights[step][-2])
+            self.k.append(self.k_)
+            self.k_ = 0
+            # print(self.zfactor)
             self.k.append(self.k_)
             self.k_ = 0
             # print(self.zfactor)
@@ -160,6 +168,7 @@ class LatticePolymer:
 
         elif self.weight > W_p and step != self.N-1: # and step <= int(0.95*self.N):
             self.n_c += 1
+            self.n_c += 1
             self.weight -= np.log10(2)
             # self.weights[step][-1] -= np.log10(2)
             # for s in range(1, step+1):
@@ -167,6 +176,8 @@ class LatticePolymer:
             #     self.weights[s].append(self.weights[s][-1])
             self.clones.append(self.checkpoint())
             print('%sPolymer has been CLONED!%s' % (Fore.MAGENTA, Style.RESET_ALL))
+            self.c.append(self.c_)
+            self.c0 = len(self.clones)
             self.c.append(self.c_)
             self.c0 = len(self.clones)
     
@@ -185,14 +196,28 @@ class LatticePolymer:
         Updates weight according to the chosen random walk pattern.
         '''
         numb_neigh = self.number_neighbors()
-        if numb_neigh !=0:
+        # Generating a new direction
+        x, y, z = self.random_step()
+        while [x, y, z] in self.pos:
+            # Generating new step if the step is already present in the history of steps
+            x, y, z = self.random_step()
+        self.pos.append([x,y,z])
+
+        if not self.forced:
             if not self.interacting:
                 self.weight += np.log10(numb_neigh)
             else: 
-                numb_pairs = 5 - numb_neigh
-                self.weight += np.log10(numb_neigh*np.exp(-self.beta_eps*numb_pairs))
+                numb_pairs = 5 - self.number_neighbors()
+                self.weight += np.log10(numb_neigh*self.q**(numb_pairs))
         else:
-            self.weight = 0
+            numb_pairs = 5 - self.number_neighbors()
+            delta_x = self.pos[-1][0] - self.pos[-2][0]
+            if delta_x == 0:
+                self.weight += np.log10(self.q**(numb_pairs))
+            elif delta_x == 1:
+                self.weight += np.log10(self.q**(numb_pairs)*np.sqrt(self.b))
+            else:
+                self.weight += np.log10(self.q**(numb_pairs)/np.sqrt(self.b))
 
         # Calculation of Z (for Monte Carlo purposes)
         # try:
@@ -225,6 +250,13 @@ class LatticePolymer:
         return np.average(np.linalg.norm(pos - rCM, ord=2, axis=1)**2)
     
     @staticmethod
+    def extension(pos):
+        '''
+        Computes the extension of a set of vector in the x direction.
+        '''
+        return pos[-1][0] - pos[0][0]
+    
+    @staticmethod
     def neighborhood(r):
         '''
         Checks the neighboring sites of a given vector r.
@@ -248,7 +280,7 @@ class MonteCarlo(LatticePolymer):
     Generates collection of polymers.
     Returns thermodynamic observables.
     '''
-    def __init__(self, n=1, N=100, constraint='force', beta_eps=0, load=''):
+    def __init__(self, n=1, N=100, boltzmann_energy=1, boltzmann_force=1):
         '''
         Parameters
         ----------
@@ -256,7 +288,7 @@ class MonteCarlo(LatticePolymer):
           Number of monte carlo steps (number of generated polymers)
         '''
         self.n = n
-        LatticePolymer.__init__(self, N, constraint, beta_eps)
+        LatticePolymer.__init__(self, N, boltzmann_energy, boltzmann_force)
         self.weights = [[] for _ in range(self.N)]
         self.Z = np.zeros(shape=self.N)
         self.history = {'weight': [], 'pos': [], 'origin': []}
@@ -289,6 +321,8 @@ class MonteCarlo(LatticePolymer):
         self.cloning_freeze = 0
         self.tour = 0
         self.tours = []
+        self.c = []
+        self.k = []
         self.c = []
         self.k = []
 

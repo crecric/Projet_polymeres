@@ -5,8 +5,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 # Params
-N = 2000         # Number of monomers
-beta_eps = -0  # beta*eps
+N = 100         # Number of monomers
+energy = 1.3  # beta*eps
+# force = 1.5
 n = 10000              # Number of polymers
 poly_per_run = 100
 runs = 50
@@ -14,9 +15,9 @@ c_m = 0.3
 c_p = 3
 
 # Generating a group of polymers with Rosenbluth method
-mcgroup = MonteCarloFactory(n=n, N=N, beta_eps = beta_eps)
-mcgroup.multiple_PERM(runs=runs, poly_per_run=poly_per_run, c_m=c_m, c_p=c_p, \
-                      save='%druns_%dmonom_%dpoly_%.2f_%.2f.pkl' % (runs, N, poly_per_run, c_m, c_p))
+# mcgroup = MonteCarloFactory(n=n, N=N, boltzmann_energy=energy)
+# mcgroup.multiple_PERM(runs=runs, poly_per_run=poly_per_run, c_m=c_m, c_p=c_p, \
+#                       save='isaw_%s_runs_%dmonom_%dpoly_%.2f_%.2f.pkl' % (runs, N, poly_per_run, c_m, c_p))
 # mcgroup.rosenbluth(perm=True, c_m=c_m, c_p=c_p, relaxation=100000)
 # print(mcgroup.history['origin'])
 # print('Cloning in average every %f steps' % np.mean(mcgroup.c))
@@ -37,23 +38,26 @@ mcgroup.multiple_PERM(runs=runs, poly_per_run=poly_per_run, c_m=c_m, c_p=c_p, \
 def r(L):
      nu = 3/5
      return L**(2*nu)
-ks = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1]
-ks = [int(N*k) for k in ks]
-x = np.linspace(ks[0], ks[-1], 100)
+# ks = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1]
+# ks = [int(N*k) for k in ks]
+ks = np.logspace(1, 2, num=15)
+ks = [int(k) for k in ks]
+# x = np.linspace(ks[0], ks[-1], 100)
 ts = []
 es = []
-# mcgroup = MonteCarloFactory(load='%druns_%dmonom_%dpoly_%.2f_%.2f.pkl' % (runs, N, poly_per_run, c_m, c_p))
+mcgroup = MonteCarloFactory(load='isaw_%s_runs_%dmonom_%dpoly_%.2f_%.2f.pkl' % (runs, N, poly_per_run, c_m, c_p))
 for k in ks:
      t = mcgroup.compute_observable(LatticePolymer.length, k)
      e = mcgroup.error(LatticePolymer.length, k)
-     ts.append(t)
-     es.append(e)
-     print("re(%d) = %f +/- %f" % (k, t, e))
-     print('r_theo(%d)=' % k, r(k-1))
+     ts.append(t/k)
+     es.append(e/k)
+     # print("re(%d) = %f +/- %f" % (k, t, e))
+     # print('r_theo(%d)=' % k, r(k-1))
 
 plt.errorbar(ks, ts, yerr=es, fmt='bo-')
-plt.plot(x, r(x), 'r-')
-plt.savefig('Re_%druns_%dmonom_%dpoly_%.2f_%.2f.jpg' % (runs, N, poly_per_run, c_m, c_p), dpi=300)
+plt.xscale('log')
+# plt.plot(x, r(x), 'r-')
+plt.savefig('isaw_%druns_%dmonom_%dpoly_%.2f_%.2f.jpg' % (runs, N, poly_per_run, c_m, c_p), dpi=300)
 plt.show()
 # print("Z :", mcgroup.Z)
 
