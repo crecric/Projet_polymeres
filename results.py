@@ -34,10 +34,11 @@ if arg not in ['sarw', 'isaw', 'bisaw']:
 # Params
 N = 2000               # Number of monomers
 n = 100              # Number of polymers
-poly_per_run = 400
-runs = 500
-c_m = 0.3
-c_p = 3
+poly_per_run = 500
+runs = 3
+c_m = 0.8
+c_p = 15.0
+log = True
 
 if arg == 'sarw':
     # Generating a group of polymers with Rosenbluth method
@@ -49,22 +50,32 @@ if arg == 'sarw':
         nu = 0.586
         return L**(2*nu)
     
-    ks = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1]
-    ks = [int(N*k) for k in ks]
+    if log ==True:
+        ks=np.logspace(1, np.log10(N), num=15)  
+        ks = [int(k) for k in ks]
+    else :
+        ks= [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1]
+        ks = [int(N*k) for k in ks]
+
     x = np.linspace(ks[0], ks[-1], 100)
     ts = []
     es = []
-    # mcgroup = MonteCarloFactory(load='%druns_%dmonom_%dpoly_%.2f_%.2f.pkl' % (runs, N, poly_per_run, c_m, c_p))
+    #mcgroup = MonteCarloFactory(load='sarw_%druns_%dmonom_%dpoly_%.2f_%.2f.pkl' % (runs, N, poly_per_run, c_m, c_p))
     for k in ks:
         t = mcgroup.compute_observable(LatticePolymer.length, k)
         e = mcgroup.error(LatticePolymer.length, k)
-        ts.append(t)
-        es.append(e)
+        if log ==True :
+            ts.append(t/r(k-1)) 
+            es.append(e/r(k-1))
+        else :
+            ts.append(t)
+            es.append(e)
         print("re(%d) = %f +/- %f" % (k, t, e))
         print('r_theo(%d)=' % k, r(k-1))
 
     plt.errorbar(ks, ts, yerr=es, fmt='ro', mfc='red', mec='k', ms=6.0, capsize=3, lw=0.9, label='PERM')
-    plt.plot(x, r(x), 'b-', lw=2, label='Approximate law')
+    if not log : plt.plot(x, r(x), 'b-', lw=2, label='Approximate law')
+    if log==True : plt.xscale('log')
     ax = plt.gca()
     make_axis(ax)
     plt.legend(loc=2, frameon=False)
@@ -74,6 +85,8 @@ if arg == 'sarw':
 
     end_time = time.time()
     plt.show()
+
+
 
 elif arg == 'isaw':
     energy = [1.3, 1.305, 1.3087, 1.310, 1.315]
@@ -147,8 +160,8 @@ else:
 
 
 #Heatmap
-visualisation.polyCloud3D(mcgroup,N,n)
+#visualisation.polyCloud3D(mcgroup,N,n)
 
-elapsed_time = end_time - start_time
+#elapsed_time = end_time - start_time
 
-print("Elapsed time:", elapsed_time, "seconds")
+#print("Elapsed time:", elapsed_time, "seconds")
