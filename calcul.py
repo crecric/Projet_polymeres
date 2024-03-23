@@ -123,7 +123,7 @@ class LatticePolymer:
             x, y, z = choice(self.neighborhood(self.pos[-1]))
         else:
             weights = [np.sqrt(self.b), 1/np.sqrt(self.b), 1, 1, 1, 1]
-            print(weights)
+            
             s = np.sum(weights)
             weights = [w/s for w in weights]
             x, y, z = choices(self.neighborhood(self.pos[-1]), weights=weights)[0]
@@ -158,7 +158,7 @@ class LatticePolymer:
             #print(np.power(10, self.y)) 
             if uniform(0, 1) < 0.5:
                 print('%sPolymer has been KILLED!%s' % (Fore.RED, Style.RESET_ALL))
-                # del self.weights[step][-1]
+                #del self.weights[step][-1]
                 raise BreakException()
             else:
                 print('%sPolymer has SURVIVED!%s' % (Fore.GREEN, Style.RESET_ALL))
@@ -434,6 +434,7 @@ class MonteCarlo(LatticePolymer):
 
         observables = [obs(pos) for pos in positions]
         weights = np.power(10, [w-np.log10(trials)-self.Z[N-1] for w in logweights])
+        
         return np.average(observables, weights=weights)
 
     def error(self, obs, N):
