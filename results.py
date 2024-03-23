@@ -5,6 +5,9 @@ import visualisation
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
+import time
+
+start_time = time.time()
 
 # Plot params
 mpl.rcParams['figure.figsize'] = (8,7)
@@ -29,10 +32,10 @@ if arg not in ['sarw', 'isaw', 'bisaw']:
     raise NotImplementedError("Please provide a run type in ['sarw', 'isarw', 'bisaw']")
 
 # Params
-N = 1000               # Number of monomers
+N = 2000               # Number of monomers
 n = 100              # Number of polymers
-poly_per_run = 150
-runs = 100
+poly_per_run = 400
+runs = 500
 c_m = 0.3
 c_p = 3
 
@@ -68,6 +71,8 @@ if arg == 'sarw':
     plt.ylabel(r'$\langle r_e^2\rangle$')
     plt.xlabel(r'$N$')
     plt.savefig('Re_%druns_%dmonom_%dpoly_%.2f_%.2f.jpg' % (runs, N, poly_per_run, c_m, c_p), dpi=300)
+
+    end_time = time.time()
     plt.show()
 
 elif arg == 'isaw':
@@ -100,6 +105,8 @@ elif arg == 'isaw':
     plt.ylabel(r'$\frac{1}{N}\langle r_e^2\rangle$')
     plt.xlabel(r'$N$')
     plt.savefig('Re_%s_%druns_%dmonom_%dpoly_%.2f_%.2f.jpg' % (arg, runs, N, poly_per_run, c_m, c_p), dpi=300)
+
+    end_time = time.time()
     plt.show()
 
 else:
@@ -127,14 +134,21 @@ else:
 
         plt.plot(ks, ts[i, :], fmts[i], lw=0.5, label='b=%.3f' % f)
         
+    
     ax = plt.gca()
     make_axis(ax)
     plt.legend(loc=1)
     plt.ylabel(r'$\langle x\rangle$')
     plt.xlabel(r'$N$')
     plt.savefig('X_%s_%druns_%dmonom_%dpoly_%.2f_%.2f.jpg' % (arg, runs, N, poly_per_run, c_m, c_p), dpi=300)
+    end_time = time.time()
     plt.show()
 
 
-    #Heatmap
-    visualisation.polyCloud3D(mcgroup,N,n)
+
+#Heatmap
+visualisation.polyCloud3D(mcgroup,N,n)
+
+elapsed_time = end_time - start_time
+
+print("Elapsed time:", elapsed_time, "seconds")
