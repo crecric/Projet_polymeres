@@ -281,14 +281,13 @@ class MonteCarlo(LatticePolymer):
     Generates collection of polymers.
     Returns thermodynamic observables.
     '''
-    def __init__(self, n=1, N=100, boltzmann_energy=1, boltzmann_force=1):
+    def __init__(self, N=100, boltzmann_energy=1, boltzmann_force=1):
         '''
         Parameters
         ----------
-        n : int
-          Number of monte carlo steps (number of generated polymers)
+        Init parameters of LatticePolymer
         '''
-        self.n = n
+
         LatticePolymer.__init__(self, N, boltzmann_energy, boltzmann_force)
         self.weights = [[] for _ in range(self.N)]
         self.Z = np.zeros(shape=self.N)

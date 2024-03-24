@@ -25,9 +25,9 @@ def singPolyVisu3D(x, y, z):
     plt.show()
 
 def polyCloud3D(mcgroup,N,n):
+
+    # Extracting monomer positions
     mcpos = []
-    
-    #print(mcgroup.history['pos'])
     for i in range(len(mcgroup.history['pos'])-1):
         if mcgroup.history['pos'][i].shape[0]>=N:
             mcpos.append(mcgroup.history['pos'][i])
@@ -36,19 +36,12 @@ def polyCloud3D(mcgroup,N,n):
         for j in range(len(mcpos[i])):
             posi.append(mcpos[i][j])
 
-    #print(posi)
+  
     groupPos=[0,0,0]
     posi=np.array(posi)
     for p in range(3):
         groupPos[p] = posi[:,p]
-    #groupPos[p] = np.array([pos[:][p] for pos in mcgroup.history['pos'] if pos.shape[0] >= N ])#and mcgroup.history['origin'][i] < N])
-        
-        #groupPos = np.array(mcgroup.history['pos'][0])
-        # for a in range(0,N):
-        #     np.append(groupPos[p],[pos[:a] for i, pos in enumerate(mcgroup.history['pos'][p]) if pos.shape[0] >= a and mcgroup.history['origin'][i] < a])
-    #print(groupPos[p])
-    #groupPos[p].flatten()
-    #groupPos[p]= np.array(groupPos[p]).T
+    
     # Creating the matrix to map the frequency of monomers situated on a certain position in the grid
     xmax = max(groupPos[0])
     ymax = max(groupPos[1]) 
@@ -83,7 +76,7 @@ def polyCloud3D(mcgroup,N,n):
 def polyCloud3Dchop(mcgroup,N,n):
     mcpos = []
     
-    #print(mcgroup.history['pos'])
+    # Extracting monomer positions
     for i in range(len(mcgroup.history['pos'])-1):
         if mcgroup.history['pos'][i].shape[0]>=N:
             mcpos.append(mcgroup.history['pos'][i])
@@ -92,19 +85,12 @@ def polyCloud3Dchop(mcgroup,N,n):
         for j in range(len(mcpos[i])):
             posi.append(mcpos[i][j])
 
-    #print(posi)
+  
     groupPos=[0,0,0]
     posi=np.array(posi)
     for p in range(3):
         groupPos[p] = posi[:,p]
-    #groupPos[p] = np.array([pos[:][p] for pos in mcgroup.history['pos'] if pos.shape[0] >= N ])#and mcgroup.history['origin'][i] < N])
-        
-        #groupPos = np.array(mcgroup.history['pos'][0])
-        # for a in range(0,N):
-        #     np.append(groupPos[p],[pos[:a] for i, pos in enumerate(mcgroup.history['pos'][p]) if pos.shape[0] >= a and mcgroup.history['origin'][i] < a])
-    #print(groupPos[p])
-    #groupPos[p].flatten()
-    #groupPos[p]= np.array(groupPos[p]).T
+  
     # Creating the matrix to map the frequency of monomers situated on a certain position in the grid
     xmax = max(groupPos[0])
     ymax = max(groupPos[1]) 
