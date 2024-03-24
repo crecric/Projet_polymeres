@@ -79,3 +79,60 @@ def polyCloud3D(mcgroup,N,n):
     
     ax.grid(True)
     plt.show()
+
+def polyCloud3Dchop(mcgroup,N,n):
+    mcpos = []
+    
+    #print(mcgroup.history['pos'])
+    for i in range(len(mcgroup.history['pos'])-1):
+        if mcgroup.history['pos'][i].shape[0]>=N:
+            mcpos.append(mcgroup.history['pos'][i])
+    posi = []
+    for i in range(len(mcpos)):
+        for j in range(len(mcpos[i])):
+            posi.append(mcpos[i][j])
+
+    #print(posi)
+    groupPos=[0,0,0]
+    posi=np.array(posi)
+    for p in range(3):
+        groupPos[p] = posi[:,p]
+    #groupPos[p] = np.array([pos[:][p] for pos in mcgroup.history['pos'] if pos.shape[0] >= N ])#and mcgroup.history['origin'][i] < N])
+        
+        #groupPos = np.array(mcgroup.history['pos'][0])
+        # for a in range(0,N):
+        #     np.append(groupPos[p],[pos[:a] for i, pos in enumerate(mcgroup.history['pos'][p]) if pos.shape[0] >= a and mcgroup.history['origin'][i] < a])
+    #print(groupPos[p])
+    #groupPos[p].flatten()
+    #groupPos[p]= np.array(groupPos[p]).T
+    # Creating the matrix to map the frequency of monomers situated on a certain position in the grid
+    xmax = max(groupPos[0])
+    ymax = max(groupPos[1]) 
+    zmax = max(groupPos[2])
+    xmin = min(groupPos[0])
+    ymin = min(groupPos[1]) 
+    zmin = min(groupPos[2])
+    map=np.zeros((xmax-xmin+1,ymax-ymin+1,zmax-zmin+1))
+    for i in range(len(groupPos[0])):
+        if groupPos[0][i]>=0:
+            x = groupPos[0][i]
+            y = groupPos[1][i]
+            z = groupPos[2][i]
+        map[x-xmin-1,y-ymin-1,z-zmin-1]+=1
+
+    # Taking every point where at least a polymer passed
+    unique = np.unique(groupPos, axis=1)
+    points = np.zeros(len(unique[0]))
+
+    # Associating to each point its frequency value
+    for i in range(len(unique[0])):
+        points[i] = map[unique[0][i]-xmin-1,unique[1][i]-ymin-1,unique[2][i]-zmin-1]
+
+    # Plotting the discrete heatmap
+    ax = plt.figure().add_subplot(projection='3d')
+    color = points**(1/6)
+    size = points**(1/2)
+    ax.scatter(unique[0], unique[1], unique[2], c=-color, cmap='inferno', s=size, alpha=0.5)
+    
+    ax.grid(True)
+    plt.show()

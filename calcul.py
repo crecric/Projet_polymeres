@@ -313,7 +313,7 @@ class MonteCarlo(LatticePolymer):
         c_m = kwargs.get('c_m', 0.2)     # lower threshold
         c_p = kwargs.get('c_p', 10*c_m)
         # self.relaxation = kwargs.get('relaxation', max(250, self.n//5))
-        start = 50 # self.N//100                       # pruning/enriching is only applied after some trials
+        start = 2 # self.N//100                       # pruning/enriching is only applied after some trials
 
         # Run iterators
         self.trial = 0                  
@@ -330,8 +330,8 @@ class MonteCarlo(LatticePolymer):
         while self.desired_trials < self.n:
             print('Simulating Polymer %d / Trial %d / Tour %d' % (self.desired_trials, self.trial, self.tour))
             self.origin = 0
-           # if self.cloning_freeze >= 750:
-           #     break
+            if self.cloning_freeze >= 7500:
+               break
             if (self.trial < start and self.r==1) or not self.perm:
                 self.gen_walk(perm = False)
             else:

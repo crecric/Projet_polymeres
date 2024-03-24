@@ -32,12 +32,12 @@ if arg not in ['sarw', 'isaw', 'bisaw']:
     raise NotImplementedError("Please provide a run type in ['sarw', 'isarw', 'bisaw']")
 
 # Params
-N = 2000               # Number of monomers
+N = 1000               # Number of monomers
 n = 100              # Number of polymers
-poly_per_run = 500
-runs = 3
-c_m = 0.8
-c_p = 15.0
+poly_per_run = 200
+runs = 10
+c_m = 0.05
+c_p = 6.5
 log = True
 
 if arg == 'sarw':
@@ -129,10 +129,10 @@ else:
     ks = [int(k) for k in ks]
     fmts = ['r-', 'g.', 'c--', 'm-', 'y.', 'b-']
     for i, f in enumerate(force):
-        mcgroup = MonteCarloFactory(n=n, N=N, boltzmann_energy=energy, boltzmann_force=f)
-        mcgroup.multiple_PERM(runs=runs, poly_per_run=poly_per_run, c_m=c_m, c_p=c_p, \
-                            save='%s_%.2fb_%druns_%dmonom_%dpoly_%.2f_%.2f.pkl' % \
-                                (arg, f, runs, N, poly_per_run, c_m, c_p))
+        # mcgroup = MonteCarloFactory(n=n, N=N, boltzmann_energy=energy, boltzmann_force=f)
+        # mcgroup.multiple_PERM(runs=runs, poly_per_run=poly_per_run, c_m=c_m, c_p=c_p, \
+        #                     save='%s_%.2fb_%druns_%dmonom_%dpoly_%.2f_%.2f.pkl' % \
+        #                         (arg, f, runs, N, poly_per_run, c_m, c_p))
         
         ts = np.empty(shape=(len(force), len(ks)))
         es = np.empty(shape=(len(force), len(ks)))
@@ -150,7 +150,7 @@ else:
     
     ax = plt.gca()
     make_axis(ax)
-    plt.legend(loc=1)
+    plt.legend(loc='upper left')
     plt.ylabel(r'$\langle x\rangle$')
     plt.xlabel(r'$N$')
     plt.savefig('X_%s_%druns_%dmonom_%dpoly_%.2f_%.2f.jpg' % (arg, runs, N, poly_per_run, c_m, c_p), dpi=300)
@@ -160,8 +160,9 @@ else:
 
 
 #Heatmap
-#visualisation.polyCloud3D(mcgroup,N,n)
+visualisation.polyCloud3D(mcgroup,N,n)
+visualisation.polyCloud3Dchop(mcgroup,N,n)
 
-#elapsed_time = end_time - start_time
+elapsed_time = end_time - start_time
 
-#print("Elapsed time:", elapsed_time, "seconds")
+print("Elapsed time:", elapsed_time, "seconds")
