@@ -202,10 +202,10 @@ else:
 
 
 # Heatmap
-# visualisation.polyCloud3D(mcgroup,N,n)
+visualisation.polyCloud3D(mcgroup,N)
     
 # Chopped heatmap
-# visualisation.polyCloud3Dchop(mcgroup,N,n)
+# visualisation.polyCloud3Dchop(mcgroup,N)
 
 elapsed_time = end_time - start_time
 

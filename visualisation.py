@@ -24,7 +24,7 @@ def singPolyVisu3D(x, y, z):
     ax.grid(True)
     plt.show()
 
-def polyCloud3D(mcgroup,N,n):
+def polyCloud3D(mcgroup,N):
 
     # Extracting monomer positions
     mcpos = []
@@ -73,7 +73,7 @@ def polyCloud3D(mcgroup,N,n):
     ax.grid(True)
     plt.show()
 
-def polyCloud3Dchop(mcgroup,N,n):
+def polyCloud3Dchop(mcgroup,N):
     mcpos = []
     
     # Extracting monomer positions
