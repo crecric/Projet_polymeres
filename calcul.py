@@ -16,15 +16,15 @@ class LatticePolymer:
         ----------
         N : int
             Polymer length
-        constraint : string
-            Thermo-mecanical constraint applied to the chain. Only 'force' implemented for the moment.
-        beta_eps : float
-            strength of interacting energy compared to inverse temperature. 
-            If beta_eps = 0 there is no closest-non-paired neighbor interaction.
+        boltzmann_energy : float
+            Boltzmann energy as in exp(-beta*epsilon)
+        boltzmann_force : float
+            Boltzmann force as in exp(beta*force)
         '''
         # Setting Interaction and constraints
         self.q = boltzmann_energy
         self.b = boltzmann_force
+
         if self.q == 1:
             self.interacting = False
         else:
@@ -35,9 +35,10 @@ class LatticePolymer:
             self.forced = False
 
         self.N = N
-
-        self.n_c = 0
-        self.n_p = 0
+        
+        # Number of clones and number of pruned steps
+        # self.n_c = 0
+        # self.n_p = 0
 
     def gen_walk(self, start=1, perm=False, c_m=0.2, c_p=2):
         '''
@@ -50,23 +51,23 @@ class LatticePolymer:
             Tells if pruning/enriching is applied during sampling
         c_m : float
             Pruning strength (as in lower threshold = c_m * current estimator of Z)
+        c_p : float
+            Cloning strength (as in upper threshold = c_p * current estimator of Z)
         '''
         # Positioning the initial monomer
         if start == 1:
             self.pos = [[0, 0, 0]]
             self.weight = 0
-            # if self.interacting:
-            #     # The first iteration will wrongly count -1 occupied neighboring sites (cf number_pairs)
-            #     # The weight has to be balanced in accordance.
-            #     self.weight = np.log10(self.q)
         
-        self.heatup = 0
-        heatup_thres = max(10, self.N // 500)
+        # self.heatup = 0
+        # heatup_thres = max(10, self.N // 500)
         # if self.tours.count(self.tour) >= self.relaxation and self.origin <= int(0.2*self.N):
         #     print('%sRelaxing PERM...%s' % (Fore.YELLOW, Style.RESET_ALL))
-        self.c0 = len(self.clones)
-        self.k_ = 0
-        self.c_ = 0
+
+        # Number of 
+        # self.c0 = len(self.clones)
+        # self.k_ = 0
+        # self.c_ = 0
 
         # Looping on the walk
         try:
@@ -88,13 +89,11 @@ class LatticePolymer:
                         # c_m /= 10
                     # Pruning/enriching
                     self.control_weight(step, c_m, c_p)
-                    
-                if len(self.clones) == self.c0:
-                    self.c_ += 1
-                self.k_ += 1
-                if len(self.clones) == self.c0:
-                    self.c_ += 1
-                self.k_ += 1
+                
+                # Mean number of killed and cloned polymers
+                # if len(self.clones) == self.c0:
+                #     self.c_ += 1
+                # self.k_ += 1
                     
         # If control_weight prematuraly kills a polymer
         except BreakException:
@@ -144,18 +143,15 @@ class LatticePolymer:
         self.heatup=0 
         # Pruning
         if self.weight < W_m:
-            self.n_p += 1
-            self.n_p += 1
-            # print(W_m)
-            # print(self.weights[step][-1])
-            # print(self.weights[step][-2])
-            self.k.append(self.k_)
-            self.k_ = 0
-            # print(self.zfactor)
-            self.k.append(self.k_)
-            self.k_ = 0
-            # print(self.zfactor)
-            #print(np.power(10, self.y)) 
+
+            # Number of clones and pruned steps
+            # self.n_p += 1
+            # self.n_p += 1
+
+            # Mean number of killed polymers
+            # self.k.append(self.k_)
+            # self.k_ = 0
+            
             if uniform(0, 1) < 0.5:
                 print('%sPolymer has been KILLED!%s' % (Fore.RED, Style.RESET_ALL))
                 #del self.weights[step][-1]
@@ -177,10 +173,11 @@ class LatticePolymer:
             #     self.weights[s].append(self.weights[s][-1])
             self.clones.append(self.checkpoint())
             print('%sPolymer has been CLONED!%s' % (Fore.MAGENTA, Style.RESET_ALL))
-            self.c.append(self.c_)
-            self.c0 = len(self.clones)
-            self.c.append(self.c_)
-            self.c0 = len(self.clones)
+
+            # Mean number of cloned polymers 
+            # self.c.append(self.c_)
+            # self.c0 = len(self.clones)
+
     
     def checkpoint(self):
         '''
@@ -321,10 +318,11 @@ class MonteCarlo(LatticePolymer):
         self.cloning_freeze = 0
         self.tour = 0
         self.tours = []
-        self.c = []
-        self.k = []
-        self.c = []
-        self.k = []
+
+        # Mean number of cloned and killed polymers
+        # self.c = []
+        # self.k = []
+
 
         while self.desired_trials < self.n:
             print('Simulating Polymer %d / Trial %d / Tour %d' % (self.desired_trials, self.trial, self.tour))
