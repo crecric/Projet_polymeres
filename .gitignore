@@ -7,3 +7,4 @@ build/
 test*
 *.jpg
 *.pkl
+*.DS_Store
