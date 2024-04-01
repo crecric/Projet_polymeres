@@ -30,7 +30,7 @@ pip install -r requirements.txt
 to make sure you possess all the prerequisites. In case you want to work on a seperate environment, proceed as follows:
 - Create new virtual environment
 ```
-virtualenv polymers
+python -m venv polymers
 ```
 - Activate it
 ```
