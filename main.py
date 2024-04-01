@@ -73,4 +73,4 @@ plt.show()
 #visualisation.singPolyVisu3D(pos[0], pos[1], pos[2])
 
 # Visualisation of a group of polymers
-visualisation.polyCloud3D(mcgroup)
+visualisation.polyCloud3D(mcgroup, N)

@@ -204,7 +204,7 @@ else:
 
 
 # Heatmap
-visualisation.polyCloud3D(mcgroup,N)
+visualisation.polyCloud3D(mcgroup, N)
     
 # Chopped heatmap
 # visualisation.polyCloud3Dchop(mcgroup,N)
