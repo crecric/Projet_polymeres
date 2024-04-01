@@ -1,6 +1,6 @@
 import numpy as np
 import sys
-from calcul import LatticePolymer, MonteCarloFactory, MonteCarlo
+from mc_polymers import LatticePolymer, MonteCarloFactory, MonteCarlo
 import visualisation
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -117,7 +117,8 @@ elif arg == 'isaw':
     for i, en in enumerate(energy):
 
         
-        if not os.path.exists('%s_%druns_%dmonom_%dpoly_%.2f_%.2f.pkl' % (arg, runs, N, poly_per_run, c_m, c_p)):
+        if not os.path.exists('%s_%.3fq_%druns_%dmonom_%dpoly_%.2f_%.2f.pkl' % \
+                                    (arg, en, runs, N, poly_per_run, c_m, c_p)):
 
             # Generating a group of polymers with PERM method
             mcgroup = MonteCarloFactory(N=N, boltzmann_energy=en)
@@ -166,7 +167,8 @@ else:
     ks = [int(k) for k in ks]
     fmts = ['r-', 'g.', 'c--', 'm-', 'y.', 'b-']
     for i, f in enumerate(force):
-        if not os.path.exists('%s_%druns_%dmonom_%dpoly_%.2f_%.2f.pkl' % (arg, runs, N, poly_per_run, c_m, c_p)):
+        if not os.path.exists('%s_%.2fb_%druns_%dmonom_%dpoly_%.2f_%.2f.pkl' % \
+                                    (arg, f, runs, N, poly_per_run, c_m, c_p)):
             # Generating a group of polymers with PERM method
             mcgroup = MonteCarloFactory(N=N, boltzmann_energy=energy, boltzmann_force=f)
             mcgroup.multiple_PERM(runs=runs, poly_per_run=poly_per_run, c_m=c_m, c_p=c_p, \

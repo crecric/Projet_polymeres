@@ -1,5 +1,5 @@
 import numpy as np
-from calcul import LatticePolymer, MonteCarloFactory, MonteCarlo
+from mc_polymers import LatticePolymer, MonteCarloFactory, MonteCarlo
 import visualisation
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -31,9 +31,9 @@ c_p = 3
 # print(len(posi), len(mcgroup.weights[N-1]))
 # for i in range(1,n):
 #      groupPos = np.vstack((groupPos,mcgroup.history['pos'][i]))
-#groupPos = np.array(groupPos).T
-groupweight = np.array(mcgroup.history['weight'])
-print(groupweight)
+# groupPos = np.array(groupPos).T
+# groupweight = np.array(mcgroup.history['weight'])
+# print(groupweight)
 
 def r(L):
      nu = 3/5
@@ -73,5 +73,4 @@ plt.show()
 #visualisation.singPolyVisu3D(pos[0], pos[1], pos[2])
 
 # Visualisation of a group of polymers
-visualisation.polyCloud3D(mcgroup,N-50,n)
-visualisation.polyCloud3D(mcgroup,N,n)
+visualisation.polyCloud3D(mcgroup)

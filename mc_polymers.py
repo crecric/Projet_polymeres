@@ -4,7 +4,7 @@ from copy import deepcopy as copy
 from tqdm import tqdm
 from colorama import Fore, Style
 import pickle 
-from itertools import zip_longest
+# from itertools import zip_longest
 
 class LatticePolymer:
     def __init__(self, N, boltzmann_energy=1, boltzmann_force=1):
@@ -545,7 +545,6 @@ class MonteCarlo(LatticePolymer):
         for i in range(num_bootstrap_samples):
             # Generating bootstrapped samples
             bootstrap_indices = np.random.choice(trials, size=trials, replace=True)
-            print(len(observables), len(bootstrap_indices))
             bootstrap_obs[i] = np.average(observables[bootstrap_indices], weights=weights[bootstrap_indices])
 
         error = np.std(bootstrap_obs)
